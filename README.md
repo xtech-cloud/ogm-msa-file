@@ -10,6 +10,16 @@ See [omo-msp-account](https://github.com/xtech-cloud/omo-msp-account)
 
 See [omo-docker-account](https://github.com/xtech-cloud/omo-docker-account)
 
+
+# 存储方式
+
+## 七牛云
+
+- 客户端调用Bucket.Auth获取凭证
+
+## MinIO
+
+
 # 消息订阅
 
 - 地址

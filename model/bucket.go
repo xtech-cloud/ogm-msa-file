@@ -9,11 +9,13 @@ import (
 
 type Bucket struct {
 	Name         string `gorm:"column:name;type:varchar(256);not null;unique;primaryKey"`
-	Domain       string `gorm:"column:domain;type:varchar(512)"`
-	AccessKey    string `gorm:"column:access_key;type:varchar(1024)"`
-	AccessSecret string `gorm:"column:access_secret;type:varchar(1024)"`
+	Token        string `gorm:"column:token;type:char(32)"`
 	TotalSize    uint64 `gorm:"column:size_total;not null;default:0"`
 	FreeSize     uint64 `gorm:"column:size_free;not null;default:0"`
+	Engine       int    `gorm:"column:engine"`
+	Address      string `gorm:"column:address;type:varchar(512)"`
+	AccessKey    string `gorm:"column:access_key;type:varchar(1024)"`
+	AccessSecret string `gorm:"column:access_secret;type:varchar(1024)"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -26,7 +28,7 @@ func (Bucket) TableName() string {
 }
 
 type BucketQuery struct {
-    Name string
+	Name string
 }
 
 type BucketDAO struct {
@@ -100,19 +102,19 @@ func (this *BucketDAO) List(_offset int64, _count int64) ([]*Bucket, error) {
 
 func (this *BucketDAO) QueryOne(_query *BucketQuery) (*Bucket, error) {
 	db := this.conn.DB.Model(&Bucket{})
-    hasWhere := false
-    if "" != _query.Name {
-        db = db.Where("name = ?", _query.Name)
-        hasWhere = true
-    }
-    if !hasWhere {
-        return  nil, ErrBucketNotFound
-    }
+	hasWhere := false
+	if "" != _query.Name {
+		db = db.Where("name = ?", _query.Name)
+		hasWhere = true
+	}
+	if !hasWhere {
+		return nil, ErrBucketNotFound
+	}
 
-    var bucket Bucket
-    err := db.First(&bucket).Error
-    if errors.Is(err, gorm.ErrRecordNotFound) {
-        return nil, ErrBucketNotFound
-    }
+	var bucket Bucket
+	err := db.First(&bucket).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrBucketNotFound
+	}
 	return &bucket, err
 }

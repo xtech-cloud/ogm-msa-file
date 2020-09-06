@@ -11,7 +11,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 	github.com/xtech-cloud/omo-msp-account v1.9.0
-	github.com/xtech-cloud/omo-msp-file v1.0.1
+	github.com/xtech-cloud/omo-msp-file v1.0.4
 	github.com/xtech-cloud/omo-msp-notification v1.0.0
 	gopkg.in/yaml.v2 v2.3.0
 	gorm.io/driver/mysql v1.0.1
