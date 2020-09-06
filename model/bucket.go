@@ -14,6 +14,7 @@ type Bucket struct {
 	FreeSize     uint64 `gorm:"column:size_free;not null;default:0"`
 	Engine       int    `gorm:"column:engine"`
 	Address      string `gorm:"column:address;type:varchar(512)"`
+	Scope        string `gorm:"column:scope;type:varchar(512)"`
 	AccessKey    string `gorm:"column:access_key;type:varchar(1024)"`
 	AccessSecret string `gorm:"column:access_secret;type:varchar(1024)"`
 	CreatedAt    time.Time
@@ -76,7 +77,7 @@ func (this *BucketDAO) Update(_bucket *Bucket) error {
 		return ErrBucketNotFound
 	}
 
-	return this.conn.DB.Save(_bucket).Error
+	return this.conn.DB.Updates(_bucket).Error
 }
 
 func (this *BucketDAO) Delete(_name string) error {

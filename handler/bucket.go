@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"omo-msa-file/engine"
 	"omo-msa-file/model"
 
 	"github.com/micro/go-micro/v2/logger"
@@ -21,11 +22,25 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		return nil
 	}
 
+	if 0 == _req.Capacity {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "capacity is required"
+		return nil
+	}
+
+	// 默认存储引擎为本地
+	engine := int(proto.Engine_ENGINE_LOCAL)
+	if proto.Engine_ENGINE_INVALID != _req.Engine {
+		engine = int(_req.Engine)
+	}
+
 	bucket := &model.Bucket{
 		Name:         _req.Name,
+		Engine:       engine,
 		Token:        model.NewUUID(),
 		TotalSize:    _req.Capacity,
 		Address:      _req.Address,
+		Scope:        _req.Scope,
 		AccessKey:    _req.AccessKey,
 		AccessSecret: _req.AccessSecret,
 	}
@@ -71,11 +86,14 @@ func (this *Bucket) List(_ctx context.Context, _req *proto.BucketListRequest, _r
 	for i, bucket := range buckets {
 		_rsp.Entity[i] = &proto.BucketEntity{
 			Name:         bucket.Name,
-			Address:      bucket.Address,
-			AccessKey:    bucket.AccessKey,
-			AccessSecret: bucket.AccessSecret,
+			Engine:       proto.Engine(bucket.Engine),
 			TotalSize:    bucket.TotalSize,
 			FreeSize:     bucket.FreeSize,
+			Token:        bucket.Token,
+			Address:      bucket.Address,
+			Scope:        bucket.Scope,
+			AccessKey:    bucket.AccessKey,
+			AccessSecret: bucket.AccessSecret,
 		}
 	}
 
@@ -92,9 +110,17 @@ func (this *Bucket) UpdateEngine(_ctx context.Context, _req *proto.BucketUpdateE
 		return nil
 	}
 
+	if proto.Engine_ENGINE_INVALID == _req.Engine {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "engine is required"
+		return nil
+	}
+
 	bucket := &model.Bucket{
 		Name:         _req.Name,
+		Engine:       int(_req.Engine),
 		Address:      _req.Address,
+		Scope:        _req.Scope,
 		AccessKey:    _req.AccessKey,
 		AccessSecret: _req.AccessSecret,
 	}
@@ -145,7 +171,7 @@ func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetToke
 	}
 
 	bucket := &model.Bucket{
-		Name:      _req.Name,
+		Name:  _req.Name,
 		Token: model.NewUUID(),
 	}
 
@@ -158,7 +184,6 @@ func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetToke
 	}
 	return err
 }
-
 
 func (this *Bucket) Remove(_ctx context.Context, _req *proto.BucketRemoveRequest, _rsp *proto.BlankResponse) error {
 	logger.Infof("Received Bucket.Remove, req is %v", _req)
@@ -202,18 +227,21 @@ func (this *Bucket) Get(_ctx context.Context, _req *proto.BucketGetRequest, _rsp
 	}
 	_rsp.Entity = &proto.BucketEntity{
 		Name:         bucket.Name,
-		Address:      bucket.Address,
-		AccessKey:    bucket.AccessKey,
-		AccessSecret: bucket.AccessSecret,
+		Engine:       proto.Engine(bucket.Engine),
 		TotalSize:    bucket.TotalSize,
 		FreeSize:     bucket.FreeSize,
+		Token:        bucket.Token,
+		Address:      bucket.Address,
+		Scope:        bucket.Scope,
+		AccessKey:    bucket.AccessKey,
+		AccessSecret: bucket.AccessSecret,
 	}
 
 	return nil
 }
 
-func (this *Bucket) Auth(_ctx context.Context, _req *proto.BucketGetRequest, _rsp *proto.BucketGetResponse) error {
-	logger.Infof("Received Bucket.Get, req is %v", _req)
+func (this *Bucket) Auth(_ctx context.Context, _req *proto.BucketAuthRequest, _rsp *proto.BucketAuthResponse) error {
+	logger.Infof("Received Bucket.Auth, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
 	if "" == _req.Name {
@@ -232,14 +260,12 @@ func (this *Bucket) Auth(_ctx context.Context, _req *proto.BucketGetRequest, _rs
 		_rsp.Status.Message = "bucket not found"
 		return nil
 	}
-	_rsp.Entity = &proto.BucketEntity{
-		Name:         bucket.Name,
-		Address:      bucket.Address,
-		AccessKey:    bucket.AccessKey,
-		AccessSecret: bucket.AccessSecret,
-		TotalSize:    bucket.TotalSize,
-		FreeSize:     bucket.FreeSize,
-	}
 
+    accessToken, err := engine.Auth(bucket.Engine, bucket.Address, bucket.Scope, bucket.AccessKey, bucket.AccessSecret)
+    if nil != err {
+        return err
+    }
+
+    _rsp.AccessToken = accessToken
 	return nil
 }
