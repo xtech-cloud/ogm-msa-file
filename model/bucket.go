@@ -8,10 +8,11 @@ import (
 )
 
 type Bucket struct {
-	Name         string `gorm:"column:name;type:varchar(256);not null;unique;primaryKey"`
+	UUID         string `gorm:"column:uuid;type:char(32);not null;unique;primaryKey"`
+	Name         string `gorm:"column:name;type:varchar(256);not null;unique"`
 	Token        string `gorm:"column:token;type:char(32)"`
 	TotalSize    uint64 `gorm:"column:size_total;not null;default:0"`
-	FreeSize     uint64 `gorm:"column:size_free;not null;default:0"`
+	UsedSize     uint64 `gorm:"column:size_used;not null;default:0"`
 	Engine       int    `gorm:"column:engine"`
 	Address      string `gorm:"column:address;type:varchar(512)"`
 	Scope        string `gorm:"column:scope;type:varchar(512)"`
@@ -29,7 +30,7 @@ func (Bucket) TableName() string {
 }
 
 type BucketQuery struct {
-	Name string
+	UUID string
 }
 
 type BucketDAO struct {
@@ -54,7 +55,7 @@ func (this *BucketDAO) Count() (int64, error) {
 
 func (this *BucketDAO) Insert(_bucket *Bucket) error {
 	var count int64
-	err := this.conn.DB.Model(&Bucket{}).Where("name = ?", _bucket.Name).Count(&count).Error
+	err := this.conn.DB.Model(&Bucket{}).Where("uuid = ? OR name = ?", _bucket.UUID, _bucket.Name).Count(&count).Error
 	if nil != err {
 		return err
 	}
@@ -68,7 +69,7 @@ func (this *BucketDAO) Insert(_bucket *Bucket) error {
 
 func (this *BucketDAO) Update(_bucket *Bucket) error {
 	var count int64
-	err := this.conn.DB.Model(&Bucket{}).Where("name = ?", _bucket.Name).Count(&count).Error
+	err := this.conn.DB.Model(&Bucket{}).Where("uuid = ?", _bucket.UUID).Count(&count).Error
 	if nil != err {
 		return err
 	}
@@ -80,9 +81,9 @@ func (this *BucketDAO) Update(_bucket *Bucket) error {
 	return this.conn.DB.Updates(_bucket).Error
 }
 
-func (this *BucketDAO) Delete(_name string) error {
+func (this *BucketDAO) Delete(_uuid string) error {
 	var count int64
-	err := this.conn.DB.Model(&Bucket{}).Where("name = ?", _name).Count(&count).Error
+	err := this.conn.DB.Model(&Bucket{}).Where("uuid = ?", _uuid).Count(&count).Error
 	if nil != err {
 		return err
 	}
@@ -91,8 +92,7 @@ func (this *BucketDAO) Delete(_name string) error {
 		return ErrBucketNotFound
 	}
 
-	// 使用Unscoped执行永久删除
-	return this.conn.DB.Unscoped().Where("name = ?", _name).Delete(&Bucket{}).Error
+	return this.conn.DB.Where("uuid = ?", _uuid).Delete(&Bucket{}).Error
 }
 
 func (this *BucketDAO) List(_offset int64, _count int64) ([]*Bucket, error) {
@@ -104,8 +104,8 @@ func (this *BucketDAO) List(_offset int64, _count int64) ([]*Bucket, error) {
 func (this *BucketDAO) QueryOne(_query *BucketQuery) (*Bucket, error) {
 	db := this.conn.DB.Model(&Bucket{})
 	hasWhere := false
-	if "" != _query.Name {
-		db = db.Where("name = ?", _query.Name)
+	if "" != _query.UUID {
+		db = db.Where("uuid = ?", _query.UUID)
 		hasWhere = true
 	}
 	if !hasWhere {

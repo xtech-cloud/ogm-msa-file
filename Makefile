@@ -33,7 +33,6 @@ call:
 	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Make '{"name":"test1"}'
 	# 创建存储桶，本地 ,10G (1024x1024x1024x10)
 	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Make '{"name":"local", "capacity": 10737418240}'
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Make '{"name":"qiniu", "capacity": 10737418240}'
 	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Make '{"name":"minio", "capacity": 10737418240}'
 	# 创建存储桶，已存在
 	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Make '{"name":"local", "capacity": 10737418240}'
@@ -44,35 +43,45 @@ call:
 	# 更新存储桶引擎,无参数
 	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateEngine
 	# 更新存储桶引擎,不存在
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateEngine '{"name":"test", "engine":2}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateEngine '{"uuid":"000000000000000", "engine":2}'
 	# 更新存储桶引擎
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateEngine '{"name":"minio", "engine":2, "address":"localhost:9000", "scope": "test", "accessKey": "root", "accessSecret":"minio@OMO"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateEngine '{"uuid":"132b6c5fc9193d6ae58027ae302ab67b", "engine":2, "address":"localhost:9000", "scope": "test", "accessKey": "root", "accessSecret":"minio@OMO"}'
 	# 更新存储桶引擎
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateEngine '{"name":"qiniu", "engine":3, "address":"ugc.meex.tech", "scope": "meex-ugc", "accessKey": "OM-zigYG0s0HH2od-KBIoRSRo2L90ZPuZ0vqKQPj", "accessSecret":"nup6a_1QXRD4oktAtKs_9lrUF44r652WT5IBxrrH"}'
 	# 更新存储桶容量,不存在
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateCapacity '{"name":"test"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateCapacity '{"uuid":"test"}'
 	# 更新存储桶容量, 100G
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateCapacity '{"name":"minio", "capacity":107374182400}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.UpdateCapacity '{"uuid":"132b6c5fc9193d6ae58027ae302ab67b", "capacity":107374182400}'
 	# 更新token, 不存在
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.ResetToken '{"name":"test"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.ResetToken '{"uuid":"test"}'
 	# 更新token
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.ResetToken '{"name":"minio"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.ResetToken '{"uuid":"132b6c5fc9193d6ae58027ae302ab67b"}'
 	# 获取存储桶，无参数
 	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Get
 	# 获取存储桶，不存在
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Get '{"name":"test"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Get '{"uuid":"00000000"}'
 	# 获取存储桶
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Get '{"name":"qiniu"}'
-	# 获取凭证
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Auth '{"name":"qiniu"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Get '{"uuid":"132b6c5fc9193d6ae58027ae302ab67b"}'
+	# 准备对象元数据, 超过容量
+	MICRO_REGISTRY=consul micro call omo.msa.file Object.Prepare '{"bucket":"132b6c5fc9193d6ae58027ae302ab67b", "uname":"cc2bd8f09bb88b5dd20f9b432631b8ca.jpg", "size":107374182401}'
+	# 准备对象元数据
+	MICRO_REGISTRY=consul micro call omo.msa.file Object.Prepare '{"bucket":"132b6c5fc9193d6ae58027ae302ab67b", "uname":"cc2bd8f09bb88b5dd20f9b432631b8ca.jpg", "size":223345}'
+	# 写入对象元数据 
+	MICRO_REGISTRY=consul micro call omo.msa.file Object.Flush '{"bucket":"132b6c5fc9193d6ae58027ae302ab67b", "uname":"cc2bd8f09bb88b5dd20f9b432631b8ca.jpg", "path":"a-1.jpg"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Object.Flush '{"bucket":"132b6c5fc9193d6ae58027ae302ab67b", "uname":"cc2bd8f09bb88b5dd20f9b432631b8ca.jpg", "path":"a-2.jpg"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Object.Flush '{"bucket":"132b6c5fc9193d6ae58027ae302ab67b", "uname":"cc2bd8f09bb88b5dd20f9b432631b8ca.jpg", "path":"a-3.jpg"}'
+	# 列举对象 
+	MICRO_REGISTRY=consul micro call omo.msa.file Object.List '{"bucket":"132b6c5fc9193d6ae58027ae302ab67b"}'
+	# 列举对象 
+	MICRO_REGISTRY=consul micro call omo.msa.file Object.List '{"bucket":"132b6c5fc9193d6ae58027ae302ab67b", "offset":1, "count":1}'
+	# 获取存储桶
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Get '{"uuid":"132b6c5fc9193d6ae58027ae302ab67b"}'
 	# 删除存储桶，无参数
 	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Remove
 	# 删除存储桶，不存在
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Remove '{"name":"test"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Remove '{"uuid":"00000"}'
 	# 删除存储桶，存在
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Remove '{"name":"minio"}'
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Remove '{"name":"qiniu"}'
-	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Remove '{"name":"local"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Remove '{"uuid":"132b6c5fc9193d6ae58027ae302ab67b"}'
+	MICRO_REGISTRY=consul micro call omo.msa.file Bucket.Remove '{"uuid":"f5ddaf0ca7929578b408c909429f68f2"}'
 
 .PHONY: tcall
 tcall:

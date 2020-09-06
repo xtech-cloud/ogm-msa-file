@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
-	"omo-msa-file/engine"
+	"omo-msa-file/config"
 	"omo-msa-file/model"
 
 	"github.com/micro/go-micro/v2/logger"
@@ -34,7 +34,14 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		engine = int(_req.Engine)
 	}
 
+    // 本地数据库使用存储桶名生成UUID，方便测试和开发
+	uuid := model.NewUUID()
+	if config.Schema.Database.Lite {
+		uuid = model.ToUUID(_req.Name)
+	}
+
 	bucket := &model.Bucket{
+		UUID:         uuid,
 		Name:         _req.Name,
 		Engine:       engine,
 		Token:        model.NewUUID(),
@@ -49,7 +56,7 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 	err := dao.Insert(bucket)
 	if errors.Is(err, model.ErrBucketExists) {
 		_rsp.Status.Code = 2
-		_rsp.Status.Message = "bucket exists"
+		_rsp.Status.Message = err.Error()
 		return nil
 	}
 	return err
@@ -81,14 +88,15 @@ func (this *Bucket) List(_ctx context.Context, _req *proto.BucketListRequest, _r
 		return nil
 	}
 
-	_rsp.Total = total
+	_rsp.Total = uint64(total)
 	_rsp.Entity = make([]*proto.BucketEntity, len(buckets))
 	for i, bucket := range buckets {
 		_rsp.Entity[i] = &proto.BucketEntity{
+			Uuid:         bucket.UUID,
 			Name:         bucket.Name,
 			Engine:       proto.Engine(bucket.Engine),
 			TotalSize:    bucket.TotalSize,
-			FreeSize:     bucket.FreeSize,
+			UsedSize:     bucket.UsedSize,
 			Token:        bucket.Token,
 			Address:      bucket.Address,
 			Scope:        bucket.Scope,
@@ -104,9 +112,9 @@ func (this *Bucket) UpdateEngine(_ctx context.Context, _req *proto.BucketUpdateE
 	logger.Infof("Received Bucket.UpdateEngine, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
-	if "" == _req.Name {
+	if "" == _req.Uuid {
 		_rsp.Status.Code = 1
-		_rsp.Status.Message = "name is required"
+		_rsp.Status.Message = "uuid is required"
 		return nil
 	}
 
@@ -117,7 +125,7 @@ func (this *Bucket) UpdateEngine(_ctx context.Context, _req *proto.BucketUpdateE
 	}
 
 	bucket := &model.Bucket{
-		Name:         _req.Name,
+		UUID:         _req.Uuid,
 		Engine:       int(_req.Engine),
 		Address:      _req.Address,
 		Scope:        _req.Scope,
@@ -129,7 +137,7 @@ func (this *Bucket) UpdateEngine(_ctx context.Context, _req *proto.BucketUpdateE
 	err := dao.Update(bucket)
 	if errors.Is(err, model.ErrBucketNotFound) {
 		_rsp.Status.Code = 2
-		_rsp.Status.Message = "bucket not found"
+		_rsp.Status.Message = err.Error()
 		return nil
 	}
 	return err
@@ -139,14 +147,14 @@ func (this *Bucket) UpdateCapacity(_ctx context.Context, _req *proto.BucketUpdat
 	logger.Infof("Received Bucket.UpdateCapacity, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
-	if "" == _req.Name {
+	if "" == _req.Uuid {
 		_rsp.Status.Code = 1
-		_rsp.Status.Message = "name is required"
+		_rsp.Status.Message = "uuid is required"
 		return nil
 	}
 
 	bucket := &model.Bucket{
-		Name:      _req.Name,
+		UUID:      _req.Uuid,
 		TotalSize: _req.Capacity,
 	}
 
@@ -154,7 +162,7 @@ func (this *Bucket) UpdateCapacity(_ctx context.Context, _req *proto.BucketUpdat
 	err := dao.Update(bucket)
 	if errors.Is(err, model.ErrBucketNotFound) {
 		_rsp.Status.Code = 2
-		_rsp.Status.Message = "bucket not found"
+		_rsp.Status.Message = err.Error()
 		return nil
 	}
 	return err
@@ -164,14 +172,14 @@ func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetToke
 	logger.Infof("Received Bucket.ResetToken, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
-	if "" == _req.Name {
+	if "" == _req.Uuid {
 		_rsp.Status.Code = 1
-		_rsp.Status.Message = "name is required"
+		_rsp.Status.Message = "uuid is required"
 		return nil
 	}
 
 	bucket := &model.Bucket{
-		Name:  _req.Name,
+		UUID:  _req.Uuid,
 		Token: model.NewUUID(),
 	}
 
@@ -179,7 +187,7 @@ func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetToke
 	err := dao.Update(bucket)
 	if errors.Is(err, model.ErrBucketNotFound) {
 		_rsp.Status.Code = 2
-		_rsp.Status.Message = "bucket not found"
+		_rsp.Status.Message = err.Error()
 		return nil
 	}
 	return err
@@ -189,17 +197,17 @@ func (this *Bucket) Remove(_ctx context.Context, _req *proto.BucketRemoveRequest
 	logger.Infof("Received Bucket.Remove, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
-	if "" == _req.Name {
+	if "" == _req.Uuid {
 		_rsp.Status.Code = 1
-		_rsp.Status.Message = "name is required"
+		_rsp.Status.Message = "uuid is required"
 		return nil
 	}
 
 	dao := model.NewBucketDAO(nil)
-	err := dao.Delete(_req.Name)
+	err := dao.Delete(_req.Uuid)
 	if errors.Is(err, model.ErrBucketNotFound) {
 		_rsp.Status.Code = 2
-		_rsp.Status.Message = "bucket not found"
+		_rsp.Status.Message = err.Error()
 		return nil
 	}
 	return err
@@ -209,27 +217,28 @@ func (this *Bucket) Get(_ctx context.Context, _req *proto.BucketGetRequest, _rsp
 	logger.Infof("Received Bucket.Get, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
-	if "" == _req.Name {
+	if "" == _req.Uuid {
 		_rsp.Status.Code = 1
-		_rsp.Status.Message = "name is required"
+		_rsp.Status.Message = "uuid is required"
 		return nil
 	}
 
 	dao := model.NewBucketDAO(nil)
 	query := model.BucketQuery{
-		Name: _req.Name,
+		UUID: _req.Uuid,
 	}
 	bucket, err := dao.QueryOne(&query)
 	if errors.Is(err, model.ErrBucketNotFound) {
 		_rsp.Status.Code = 2
-		_rsp.Status.Message = "bucket not found"
+		_rsp.Status.Message = err.Error()
 		return nil
 	}
 	_rsp.Entity = &proto.BucketEntity{
+		Uuid:         bucket.UUID,
 		Name:         bucket.Name,
 		Engine:       proto.Engine(bucket.Engine),
 		TotalSize:    bucket.TotalSize,
-		FreeSize:     bucket.FreeSize,
+		UsedSize:     bucket.UsedSize,
 		Token:        bucket.Token,
 		Address:      bucket.Address,
 		Scope:        bucket.Scope,
@@ -237,35 +246,5 @@ func (this *Bucket) Get(_ctx context.Context, _req *proto.BucketGetRequest, _rsp
 		AccessSecret: bucket.AccessSecret,
 	}
 
-	return nil
-}
-
-func (this *Bucket) Auth(_ctx context.Context, _req *proto.BucketAuthRequest, _rsp *proto.BucketAuthResponse) error {
-	logger.Infof("Received Bucket.Auth, req is %v", _req)
-	_rsp.Status = &proto.Status{}
-
-	if "" == _req.Name {
-		_rsp.Status.Code = 1
-		_rsp.Status.Message = "name is required"
-		return nil
-	}
-
-	dao := model.NewBucketDAO(nil)
-	query := model.BucketQuery{
-		Name: _req.Name,
-	}
-	bucket, err := dao.QueryOne(&query)
-	if errors.Is(err, model.ErrBucketNotFound) {
-		_rsp.Status.Code = 2
-		_rsp.Status.Message = "bucket not found"
-		return nil
-	}
-
-    accessToken, err := engine.Auth(bucket.Engine, bucket.Address, bucket.Scope, bucket.AccessKey, bucket.AccessSecret)
-    if nil != err {
-        return err
-    }
-
-    _rsp.AccessToken = accessToken
 	return nil
 }
