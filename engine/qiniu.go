@@ -1,7 +1,6 @@
 package engine
 
 import (
-    "errors"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/qiniu/api.v7/v7/storage"
 )
@@ -19,7 +18,11 @@ func prepareQiniu(_scope string, _uname string, _accessKey string, _accessSecret
 		return "", nil
 	}
 	// 内部错误
-	if !errors.Is(err, storage.ErrNoSuchFile) {
+	// error 是 no such file or directory
+	// ErrNoSuchFile 是 No such file or directory
+	// 应该是七牛的BUG
+	//if !errors.Is(err, storage.ErrNoSuchFile) {
+	if err.Error() != "no such file or directory" {
 		return "", err
 	}
 	putPolicy := storage.PutPolicy{
