@@ -103,9 +103,13 @@ func (this *ObjectDAO) Delete(_filepath string) error {
 	return this.conn.DB.Where("filepath = ?", _filepath).Delete(&Object{}).Error
 }
 
-func (this *ObjectDAO) List(_offset int64, _count int64) ([]*Object, error) {
+func (this *ObjectDAO) List(_offset int64, _count int64, _prefix string) ([]*Object, error) {
 	var objects []*Object
-	res := this.conn.DB.Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&objects)
+    db := this.conn.DB
+    if "" != _prefix {
+        db = db.Where("filepath LIKE ?", _prefix+"%")
+    }
+	res := db.Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&objects)
 	return objects, res.Error
 }
 

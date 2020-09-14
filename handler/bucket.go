@@ -5,6 +5,7 @@ import (
 	"errors"
 	"omo-msa-file/config"
 	"omo-msa-file/model"
+	"omo-msa-file/publisher"
 
 	"github.com/micro/go-micro/v2/logger"
 	proto "github.com/xtech-cloud/omo-msp-file/proto/file"
@@ -59,6 +60,9 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "bucket/make", "", uuid)
 	return err
 }
 
@@ -105,6 +109,8 @@ func (this *Bucket) List(_ctx context.Context, _req *proto.BucketListRequest, _r
 		}
 	}
 
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "bucket/list", "", "")
 	return nil
 }
 
@@ -140,6 +146,8 @@ func (this *Bucket) UpdateEngine(_ctx context.Context, _req *proto.BucketUpdateE
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "bucket/updateengine", "", _req.Uuid)
 	return err
 }
 
@@ -165,6 +173,8 @@ func (this *Bucket) UpdateCapacity(_ctx context.Context, _req *proto.BucketUpdat
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "bucket/updatecapacity", "", _req.Uuid)
 	return err
 }
 
@@ -190,6 +200,8 @@ func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetToke
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "bucket/resettoken", "", _req.Uuid)
 	return err
 }
 
@@ -210,6 +222,8 @@ func (this *Bucket) Remove(_ctx context.Context, _req *proto.BucketRemoveRequest
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "bucket/remove", "", _req.Uuid)
 	return err
 }
 
@@ -246,5 +260,7 @@ func (this *Bucket) Get(_ctx context.Context, _req *proto.BucketGetRequest, _rsp
 		AccessSecret: bucket.AccessSecret,
 	}
 
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "bucket/get", "", _req.Uuid)
 	return nil
 }

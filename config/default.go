@@ -20,10 +20,14 @@ database:
   sqlite:
     path: /tmp/msa-file.db
 publisher:
-- /signup
-- /signin
-- /signout
-- /reset/password
-- /profile/query
-- /profile/update
+- /bucket/make
+- /bucket/list
+- /bucket/updateengine
+- /bucket/updatecapacity
+- /bucket/resettoken
+- /bucket/remove
+- /bucket/get
+- /object/prepare
+- /object/flush
+- /object/list
 `

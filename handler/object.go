@@ -5,6 +5,7 @@ import (
 	"errors"
 	"omo-msa-file/engine"
 	"omo-msa-file/model"
+	"omo-msa-file/publisher"
 	"path"
 	"strings"
 
@@ -67,6 +68,8 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 	_rsp.Address = bucket.Address
 	_rsp.Engine = proto.Engine(bucket.Engine)
 	_rsp.AccessToken = accessToken
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "object/prepare", "", _req.Uname)
 	return nil
 }
 
@@ -145,6 +148,8 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		}
 	}
 
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "object/flush", "", _req.Uname)
 	return nil
 }
 
@@ -210,7 +215,7 @@ func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _r
 	if nil != err {
 		return nil
 	}
-	objects, err := dao.List(offset, count)
+	objects, err := dao.List(offset, count, _req.Prefix)
 	if nil != err {
 		return nil
 	}
@@ -227,5 +232,7 @@ func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _r
 		}
 	}
 
+    ctx := buildNotifyContext(_ctx, "root")
+    publisher.Publish(ctx, "object/list", "", _req.Bucket)
 	return nil
 }
