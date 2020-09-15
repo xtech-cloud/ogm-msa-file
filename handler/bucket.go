@@ -61,8 +61,9 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		return nil
 	}
 
+    // 发布消息
     ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "bucket/make", "", uuid)
+    publisher.Publish(ctx, "/bucket/make", _req, _rsp)
 	return err
 }
 
@@ -108,9 +109,6 @@ func (this *Bucket) List(_ctx context.Context, _req *proto.BucketListRequest, _r
 			AccessSecret: bucket.AccessSecret,
 		}
 	}
-
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "bucket/list", "", "")
 	return nil
 }
 
@@ -146,8 +144,9 @@ func (this *Bucket) UpdateEngine(_ctx context.Context, _req *proto.BucketUpdateE
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+    // 发布消息
     ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "bucket/updateengine", "", _req.Uuid)
+    publisher.Publish(ctx, "/bucket/updateengine", _req, _rsp)
 	return err
 }
 
@@ -173,8 +172,9 @@ func (this *Bucket) UpdateCapacity(_ctx context.Context, _req *proto.BucketUpdat
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+    // 发布消息
     ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "bucket/updatecapacity", "", _req.Uuid)
+    publisher.Publish(ctx, "/bucket/updatecapacity", _req, _rsp)
 	return err
 }
 
@@ -200,8 +200,9 @@ func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetToke
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+    // 发布消息
     ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "bucket/resettoken", "", _req.Uuid)
+    publisher.Publish(ctx, "/bucket/resettoken", _req, _rsp)
 	return err
 }
 
@@ -222,8 +223,9 @@ func (this *Bucket) Remove(_ctx context.Context, _req *proto.BucketRemoveRequest
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+    // 发布消息
     ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "bucket/remove", "", _req.Uuid)
+    publisher.Publish(ctx, "/bucket/remove", _req, _rsp)
 	return err
 }
 
@@ -259,8 +261,5 @@ func (this *Bucket) Get(_ctx context.Context, _req *proto.BucketGetRequest, _rsp
 		AccessKey:    bucket.AccessKey,
 		AccessSecret: bucket.AccessSecret,
 	}
-
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "bucket/get", "", _req.Uuid)
 	return nil
 }

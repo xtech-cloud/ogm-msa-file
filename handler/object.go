@@ -68,13 +68,14 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 	_rsp.Address = bucket.Address
 	_rsp.Engine = proto.Engine(bucket.Engine)
 	_rsp.AccessToken = accessToken
+    // 发布消息
     ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "object/prepare", "", _req.Uname)
+    publisher.Publish(ctx, "/object/prepare", _req, _rsp)
 	return nil
 }
 
 func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, _rsp *proto.BlankResponse) error {
-	logger.Infof("Received Object.Prepare, req is %v", _req)
+	logger.Infof("Received Object.Flush, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
 	if "" == _req.Bucket {
@@ -112,7 +113,6 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		return err
 	}
 
-	logger.Debugf("the size of file is %d", fsize)
 
 	daoObject := model.NewObjectDAO(nil)
 	object := &model.Object{
@@ -148,8 +148,9 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		}
 	}
 
+    // 发布消息
     ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "object/flush", "", _req.Uname)
+    publisher.Publish(ctx, "/object/flush", _req, _rsp)
 	return nil
 }
 
@@ -231,8 +232,5 @@ func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _r
 			Url:      object.URL,
 		}
 	}
-
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "object/list", "", _req.Bucket)
 	return nil
 }

@@ -2,6 +2,7 @@ package publisher
 
 import (
 	"context"
+	"encoding/json"
 	"omo-msa-file/config"
 
 	"github.com/micro/go-micro/v2"
@@ -18,7 +19,7 @@ func init() {
 	filter = make(map[string]bool)
 }
 
-func Publish(_ctx context.Context, _action string, _head string, _body string) {
+func Publish(_ctx context.Context, _action string, _req interface{}, _rsp interface{}) {
 
 	if _, ok := filter[_action]; !ok {
 		found := false
@@ -35,10 +36,22 @@ func Publish(_ctx context.Context, _action string, _head string, _body string) {
 		return
 	}
 
-	err := DefaultPublisher.Publish(_ctx, &proto.SimpleMessage{
+    head, err := json.Marshal(_req)
+	if nil != err {
+		logger.Error(err)
+        return
+	}
+
+    body, err := json.Marshal(_rsp)
+	if nil != err {
+		logger.Error(err)
+        return
+	}
+
+	err = DefaultPublisher.Publish(_ctx, &proto.SimpleMessage{
 		Action: _action,
-		Head:   _head,
-		Body:   _body,
+		Head:   string(head),
+		Body:   string(body),
 	})
 	if nil != err {
 		logger.Error(err)

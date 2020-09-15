@@ -21,13 +21,11 @@ database:
     path: /tmp/msa-file.db
 publisher:
 - /bucket/make
-- /bucket/list
 - /bucket/updateengine
 - /bucket/updatecapacity
 - /bucket/resettoken
 - /bucket/remove
-- /bucket/get
 - /object/prepare
 - /object/flush
-- /object/list
+- /object/remove
 `
