@@ -500,6 +500,10 @@ github.com/xtech-cloud/omo-msp-file v1.2.0 h1:tXbnarZ/O1t6aZdIlKap89sYE82vLjRmi5
 github.com/xtech-cloud/omo-msp-file v1.2.0/go.mod h1:7VY9hq6ibl+TX5Plwjl6tgRaBF25lyOqbNq1MCq+1OA=
 github.com/xtech-cloud/omo-msp-file v1.3.0 h1:+dS+nHOHx/UqW7h4nmkoj+Xet4ewD0CyDrsiRB6Rdvk=
 github.com/xtech-cloud/omo-msp-file v1.3.0/go.mod h1:7VY9hq6ibl+TX5Plwjl6tgRaBF25lyOqbNq1MCq+1OA=
+github.com/xtech-cloud/omo-msp-file v1.4.0 h1:Ug2Rxr4jxEDuJA895hqE/z1XDlE2utpvykl7JLrmU8I=
+github.com/xtech-cloud/omo-msp-file v1.4.0/go.mod h1:7VY9hq6ibl+TX5Plwjl6tgRaBF25lyOqbNq1MCq+1OA=
+github.com/xtech-cloud/omo-msp-file v1.5.0 h1:E9agCMT64uEw1bDQ1c8luVcN++Wg33QP0o6fOvmoD7A=
+github.com/xtech-cloud/omo-msp-file v1.5.0/go.mod h1:7VY9hq6ibl+TX5Plwjl6tgRaBF25lyOqbNq1MCq+1OA=
 github.com/xtech-cloud/omo-msp-notification v1.0.0 h1:Vh4C4WIGw4iRP7MXMGL0NPi+S7Sb1g4R0s/v/QqWtO8=
 github.com/xtech-cloud/omo-msp-notification v1.0.0/go.mod h1:RPpOwx9ZuxtYXhJQEE0bae6ccOcHoRySZGL+Vr4mnhM=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=

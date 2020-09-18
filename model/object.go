@@ -29,6 +29,7 @@ type ObjectDAO struct {
 }
 
 type ObjectQuery struct {
+	Bucket string
 	Filepath string
 	MD5      string
 }
@@ -103,21 +104,32 @@ func (this *ObjectDAO) Delete(_filepath string) error {
 	return this.conn.DB.Where("filepath = ?", _filepath).Delete(&Object{}).Error
 }
 
-func (this *ObjectDAO) List(_offset int64, _count int64, _prefix string) ([]*Object, error) {
-	var objects []*Object
-    db := this.conn.DB
-    if "" != _prefix {
-        db = db.Where("filepath LIKE ?", _prefix+"%")
+func (this *ObjectDAO) List(_offset int64, _count int64, _bucket string) (_total int64, _object []*Object, _err error) {
+    _total = int64(0)
+    _err = nil
+    _object = make([]*Object, 0)
+
+    db := this.conn.DB.Model(&Object{})
+    if "" != _bucket {
+        db = db.Where("bucket = ?", _bucket)
     }
-	res := db.Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&objects)
-	return objects, res.Error
+    _err = db.Count(&_total).Error
+    if nil != _err {
+        return
+    }
+	_err = db.Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&_object).Error
+    return
 }
 
 func (this *ObjectDAO) QueryOne(_query *ObjectQuery) (*Object, error) {
 	db := this.conn.DB.Model(&Object{})
 	hasWhere := false
+	if "" != _query.Bucket{
+		db = db.Where("bucket = ?", _query.Bucket)
+		hasWhere = true
+	}
 	if "" != _query.Filepath {
-		db = db.Where("fillepath = ?", _query.Filepath)
+		db = db.Where("filepath = ?", _query.Filepath)
 		hasWhere = true
 	}
 	if "" != _query.MD5 {
@@ -130,6 +142,15 @@ func (this *ObjectDAO) QueryOne(_query *ObjectQuery) (*Object, error) {
 
 	var object Object
 	err := db.First(&object).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrObjectNotFound
+	}
+	return &object, err
+}
+
+func (this *ObjectDAO) Get(_uuid string) (*Object, error) {
+    var object Object
+	err := this.conn.DB.Model(&Object{}).Where("uuid = ?", _uuid).First(&object).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrObjectNotFound
 	}

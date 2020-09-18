@@ -38,10 +38,7 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 	}
 
 	daoBucket := model.NewBucketDAO(nil)
-	query := model.BucketQuery{
-		UUID: _req.Bucket,
-	}
-	bucket, err := daoBucket.QueryOne(&query)
+	bucket, err := daoBucket.Get(_req.Bucket)
 	if errors.Is(err, model.ErrBucketNotFound) {
 		_rsp.Status.Code = 2
 		_rsp.Status.Message = "bucket not found"
@@ -68,9 +65,9 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 	_rsp.Address = bucket.Address
 	_rsp.Engine = proto.Engine(bucket.Engine)
 	_rsp.AccessToken = accessToken
-    // 发布消息
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "/object/prepare", _req, _rsp)
+	// 发布消息
+	ctx := buildNotifyContext(_ctx, "root")
+	publisher.Publish(ctx, "/object/prepare", _req, _rsp)
 	return nil
 }
 
@@ -98,13 +95,16 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 
 	daoBucket := model.NewBucketDAO(nil)
 	// 获取存储桶
-	bucket, err := daoBucket.QueryOne(&model.BucketQuery{
-		UUID: _req.Bucket,
-	})
-	if errors.Is(err, model.ErrBucketNotFound) {
-		_rsp.Status.Code = 2
-		_rsp.Status.Message = err.Error()
-		return nil
+	bucket, err := daoBucket.Get(_req.Bucket)
+	if nil != err {
+		if errors.Is(err, model.ErrBucketNotFound) {
+			_rsp.Status.Code = 2
+			_rsp.Status.Message = err.Error()
+			return nil
+		} else {
+			return err
+		}
+
 	}
 
 	// 从存储引擎中获取文件的实际大小
@@ -112,7 +112,6 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 	if nil != err {
 		return err
 	}
-
 
 	daoObject := model.NewObjectDAO(nil)
 	object := &model.Object{
@@ -148,9 +147,9 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		}
 	}
 
-    // 发布消息
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "/object/flush", _req, _rsp)
+	// 发布消息
+	ctx := buildNotifyContext(_ctx, "root")
+	publisher.Publish(ctx, "/object/flush", _req, _rsp)
 	return nil
 }
 
@@ -182,6 +181,35 @@ func (this *Object) Get(_ctx context.Context, _req *proto.ObjectGetRequest, _rsp
 	return nil
 }
 
+func (this *Object) Find(_ctx context.Context, _req *proto.ObjectFindRequest, _rsp *proto.ObjectFindResponse) error {
+	logger.Infof("Received Object.Find, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
+	dao := model.NewObjectDAO(nil)
+    object, err := dao.QueryOne(&model.ObjectQuery{
+        Bucket: _req.Bucket,
+        Filepath: _req.Filepath,
+    })
+    if nil != err {
+        if errors.Is(err, model.ErrObjectNotFound) {
+            _rsp.Status.Code = 2
+            _rsp.Status.Message = err.Error()
+            return nil
+        } else {
+            return err
+        }
+    }
+
+    _rsp.Entity = &proto.ObjectEntity{
+        Uuid: object.UUID,
+        Filepath: object.Filepath,
+        Md5: object.MD5,
+        Url: object.URL,
+        Size: object.Size,
+    }
+	return nil
+}
+
 func (this *Object) Remove(_ctx context.Context, _req *proto.ObjectRemoveRequest, _rsp *proto.BlankResponse) error {
 	logger.Infof("Received Object.Remove, req is %v", _req)
 	_rsp.Status = &proto.Status{}
@@ -191,6 +219,42 @@ func (this *Object) Remove(_ctx context.Context, _req *proto.ObjectRemoveRequest
 
 func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _rsp *proto.ObjectListResponse) error {
 	logger.Infof("Received Object.List, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
+	offset := int64(0)
+	count := int64(100)
+
+	if _req.Offset > 0 {
+		offset = _req.Offset
+	}
+
+	if _req.Count > 0 {
+		count = _req.Count
+	}
+
+	dao := model.NewObjectDAO(nil)
+
+	total, objects, err := dao.List(offset, count, _req.Bucket)
+	if nil != err {
+		return nil
+	}
+
+	_rsp.Total = uint64(total)
+	_rsp.Entity = make([]*proto.ObjectEntity, len(objects))
+	for i, object := range objects {
+		_rsp.Entity[i] = &proto.ObjectEntity{
+			Uuid:     object.UUID,
+			Filepath: object.Filepath,
+			Md5:      object.MD5,
+			Size:     object.Size,
+			Url:      object.URL,
+		}
+	}
+	return nil
+}
+
+func (this *Object) Search(_ctx context.Context, _req *proto.ObjectSearchRequest, _rsp *proto.ObjectSearchResponse) error {
+	logger.Infof("Received Object.Search, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
 	if "" == _req.Bucket {
@@ -210,13 +274,13 @@ func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _r
 		count = _req.Count
 	}
 
-	dao := model.NewObjectDAO(nil)
+	dao := model.NewJoinsDAO(nil)
 
-	total, err := dao.CountOfBucket(_req.Bucket)
-	if nil != err {
-		return nil
+	query := model.JoinsQuery{
+		Bucket:   _req.Bucket,
+		Filepath: _req.Prefix,
 	}
-	objects, err := dao.List(offset, count, _req.Prefix)
+	total, objects, err := dao.SearchObject(offset, count, &query)
 	if nil != err {
 		return nil
 	}
@@ -232,5 +296,62 @@ func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _r
 			Url:      object.URL,
 		}
 	}
+	return nil
+}
+
+func (this *Object) Publish(_ctx context.Context, _req *proto.ObjectPublishRequest, _rsp *proto.ObjectPublishResponse) error {
+	logger.Infof("Received Object.Publish, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
+	return nil
+}
+
+func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewRequest, _rsp *proto.ObjectPreviewResponse) error {
+	logger.Infof("Received Object.Preview, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
+	if "" == _req.Uuid {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "uuid is required"
+		return nil
+	}
+
+	dao := model.NewObjectDAO(nil)
+	object, err := dao.Get(_req.Uuid)
+	if nil != err {
+		if errors.Is(err, model.ErrObjectNotFound) {
+			_rsp.Status.Code = 1
+			_rsp.Status.Message = err.Error()
+			return nil
+		} else {
+			return err
+		}
+	}
+
+	daoBucket := model.NewBucketDAO(nil)
+	bucket, err := daoBucket.Get(object.Bucket)
+	if nil != err {
+		if errors.Is(err, model.ErrBucketNotFound) {
+			_rsp.Status.Code = 1
+			_rsp.Status.Message = err.Error()
+			return nil
+		} else {
+			return err
+		}
+	}
+
+    uname := object.MD5 + path.Ext(object.Filepath)
+	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 300, bucket.AccessKey, bucket.AccessSecret)
+	if nil != err {
+		return err
+	}
+	_rsp.Url = url
+	return nil
+}
+
+func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractRequest, _rsp *proto.BlankResponse) error {
+	logger.Infof("Received Object.Retract, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
 	return nil
 }

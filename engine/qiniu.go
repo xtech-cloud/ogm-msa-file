@@ -1,11 +1,12 @@
 package engine
 
 import (
+    "time"
 	"github.com/qiniu/api.v7/v7/auth/qbox"
 	"github.com/qiniu/api.v7/v7/storage"
 )
 
-func prepareQiniu(_scope string, _uname string, _accessKey string, _accessSecret string) (string, error) {
+func prepareQiniu(_address, _scope string, _uname string, _accessKey string, _accessSecret string) (string, error) {
 
 	mac := qbox.NewMac(_accessKey, _accessSecret)
 	cfg := storage.Config{
@@ -32,7 +33,7 @@ func prepareQiniu(_scope string, _uname string, _accessKey string, _accessSecret
 	return upToken, nil
 }
 
-func flushQiniu(_scope string, _uname string, _accessKey string, _accessSecret string) (int64, error) {
+func flushQiniu(_address, _scope string, _uname string, _accessKey string, _accessSecret string) (int64, error) {
 
 	mac := qbox.NewMac(_accessKey, _accessSecret)
 	cfg := storage.Config{
@@ -44,4 +45,11 @@ func flushQiniu(_scope string, _uname string, _accessKey string, _accessSecret s
 		return 0, err
 	}
 	return fileInfo.Fsize, nil
+}
+
+func publishQiniu(_address, _scope string, _uname string, _expiry uint64, _accessKey string, _accessSecret string) (string, error) {
+	mac := qbox.NewMac(_accessKey, _accessSecret)
+    deadline := time.Now().Add(time.Second * time.Duration(_expiry)).Unix() 
+    url := storage.MakePrivateURL(mac, _address, _uname, deadline)
+    return url, nil
 }

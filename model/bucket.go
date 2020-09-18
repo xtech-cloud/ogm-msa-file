@@ -30,7 +30,7 @@ func (Bucket) TableName() string {
 }
 
 type BucketQuery struct {
-	UUID string
+	Name string
 }
 
 type BucketDAO struct {
@@ -104,14 +104,24 @@ func (this *BucketDAO) List(_offset int64, _count int64) ([]*Bucket, error) {
 func (this *BucketDAO) QueryOne(_query *BucketQuery) (*Bucket, error) {
 	db := this.conn.DB.Model(&Bucket{})
 	hasWhere := false
-	if "" != _query.UUID {
-		db = db.Where("uuid = ?", _query.UUID)
+	if "" != _query.Name {
+		db = db.Where("name = ?", _query.Name)
 		hasWhere = true
 	}
 	if !hasWhere {
 		return nil, ErrBucketNotFound
 	}
 
+	var bucket Bucket
+	err := db.First(&bucket).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, ErrBucketNotFound
+	}
+	return &bucket, err
+}
+
+func (this *BucketDAO) Get(_uuid string) (*Bucket, error) {
+	db := this.conn.DB.Model(&Bucket{}).Where("uuid = ?", _uuid)
 	var bucket Bucket
 	err := db.First(&bucket).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {

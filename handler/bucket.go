@@ -240,8 +240,40 @@ func (this *Bucket) Get(_ctx context.Context, _req *proto.BucketGetRequest, _rsp
 	}
 
 	dao := model.NewBucketDAO(nil)
+	bucket, err := dao.Get(_req.Uuid)
+	if errors.Is(err, model.ErrBucketNotFound) {
+		_rsp.Status.Code = 2
+		_rsp.Status.Message = err.Error()
+		return nil
+	}
+	_rsp.Entity = &proto.BucketEntity{
+		Uuid:         bucket.UUID,
+		Name:         bucket.Name,
+		Engine:       proto.Engine(bucket.Engine),
+		TotalSize:    bucket.TotalSize,
+		UsedSize:     bucket.UsedSize,
+		Token:        bucket.Token,
+		Address:      bucket.Address,
+		Scope:        bucket.Scope,
+		AccessKey:    bucket.AccessKey,
+		AccessSecret: bucket.AccessSecret,
+	}
+	return nil
+}
+
+func (this *Bucket) Find(_ctx context.Context, _req *proto.BucketFindRequest, _rsp *proto.BucketFindResponse) error {
+	logger.Infof("Received Bucket.Find, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
+	if "" == _req.Name{
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "name is required"
+		return nil
+	}
+
+	dao := model.NewBucketDAO(nil)
 	query := model.BucketQuery{
-		UUID: _req.Uuid,
+		Name: _req.Name,
 	}
 	bucket, err := dao.QueryOne(&query)
 	if errors.Is(err, model.ErrBucketNotFound) {
