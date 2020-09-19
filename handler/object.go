@@ -303,11 +303,107 @@ func (this *Object) Publish(_ctx context.Context, _req *proto.ObjectPublishReque
 	logger.Infof("Received Object.Publish, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
+	if "" == _req.Uuid {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "uuid is required"
+		return nil
+	}
+
+	dao := model.NewObjectDAO(nil)
+	object, err := dao.Get(_req.Uuid)
+	if nil != err {
+		if errors.Is(err, model.ErrObjectNotFound) {
+			_rsp.Status.Code = 1
+			_rsp.Status.Message = err.Error()
+			return nil
+		} else {
+			return err
+		}
+	}
+
+	daoBucket := model.NewBucketDAO(nil)
+	bucket, err := daoBucket.Get(object.Bucket)
+	if nil != err {
+		if errors.Is(err, model.ErrBucketNotFound) {
+			_rsp.Status.Code = 1
+			_rsp.Status.Message = err.Error()
+			return nil
+		} else {
+			return err
+		}
+	}
+
+    uname := object.MD5 + path.Ext(object.Filepath)
+    // 有效期100年
+	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 60*60*24*365*100, bucket.AccessKey, bucket.AccessSecret)
+	if nil != err {
+		return err
+	}
+    object.URL = url
+    err = dao.Update(object)
+    if nil != err {
+        return nil
+    }
+    // 赋值对象访问地址
+	_rsp.Url = url
 	return nil
 }
 
 func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewRequest, _rsp *proto.ObjectPreviewResponse) error {
 	logger.Infof("Received Object.Preview, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
+	if "" == _req.Uuid {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "uuid is required"
+		return nil
+	}
+
+	dao := model.NewObjectDAO(nil)
+	object, err := dao.Get(_req.Uuid)
+	if nil != err {
+		if errors.Is(err, model.ErrObjectNotFound) {
+			_rsp.Status.Code = 1
+			_rsp.Status.Message = err.Error()
+			return nil
+		} else {
+			return err
+		}
+	}
+
+    // 如果对象有公开访问地址，返回公开访问地址
+    if "" != object.URL {
+        _rsp.Url = object.URL
+        return nil
+    }
+
+    // 如果对象没有公开访问地址，返回一个有效期5分钟的临时访问地址
+
+	daoBucket := model.NewBucketDAO(nil)
+	bucket, err := daoBucket.Get(object.Bucket)
+	if nil != err {
+		if errors.Is(err, model.ErrBucketNotFound) {
+			_rsp.Status.Code = 1
+			_rsp.Status.Message = err.Error()
+			return nil
+		} else {
+			return err
+		}
+	}
+
+    uname := object.MD5 + path.Ext(object.Filepath)
+    //有效期5分钟
+	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 300, bucket.AccessKey, bucket.AccessSecret)
+	if nil != err {
+		return err
+	}
+    //!注意： 临时的访问地址不能赋值给Object.URL
+	_rsp.Url = url
+	return nil
+}
+
+func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractRequest, _rsp *proto.BlankResponse) error {
+	logger.Infof("Received Object.Retract, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
 	if "" == _req.Uuid {
@@ -341,17 +437,16 @@ func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewReque
 	}
 
     uname := object.MD5 + path.Ext(object.Filepath)
-	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 300, bucket.AccessKey, bucket.AccessSecret)
+    // 有效期10秒
+	_, err = engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 10, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
-	_rsp.Url = url
-	return nil
-}
-
-func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractRequest, _rsp *proto.BlankResponse) error {
-	logger.Infof("Received Object.Retract, req is %v", _req)
-	_rsp.Status = &proto.Status{}
-
+    // 置空对象访问地址
+    object.URL = ""
+    err = dao.Update(object)
+    if nil != err {
+        return nil
+    }
 	return nil
 }

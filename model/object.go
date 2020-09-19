@@ -87,7 +87,8 @@ func (this *ObjectDAO) Update(_object *Object) error {
 		return ErrObjectNotFound
 	}
 
-	return this.conn.DB.Updates(_object).Error
+    // 使用select选定更新字段，零值也会被更新
+	return this.conn.DB.Select("filepath", "url", "size", "md5").Updates(_object).Error
 }
 
 func (this *ObjectDAO) Delete(_filepath string) error {
