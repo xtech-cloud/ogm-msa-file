@@ -178,6 +178,31 @@ func (this *Object) Get(_ctx context.Context, _req *proto.ObjectGetRequest, _rsp
 	logger.Infof("Received Object.Get, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
+	if "" == _req.Uuid{
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "uuid is required"
+		return nil
+	}
+
+	dao := model.NewObjectDAO(nil)
+    object, err := dao.Get(_req.Uuid)
+    if nil != err {
+        if errors.Is(err, model.ErrObjectNotFound) {
+            _rsp.Status.Code = 2
+            _rsp.Status.Message = err.Error()
+            return nil
+        } else {
+            return err
+        }
+    }
+
+    _rsp.Entity = &proto.ObjectEntity{
+        Uuid: object.UUID,
+        Filepath: object.Filepath,
+        Md5: object.MD5,
+        Url: object.URL,
+        Size: object.Size,
+    }
 	return nil
 }
 
