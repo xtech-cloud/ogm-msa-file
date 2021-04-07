@@ -26,10 +26,10 @@ func (this *JoinsDAO) SearchObject(_offset int64, _count int64, _query *JoinsQue
     _object = make([]*Object, 0)
 
 	db := this.conn.DB
-    db = db.Joins("JOIN msa_file_bucket ON msa_file_bucket.uuid = msa_file_object.bucket")
-	db = db.Where("msa_file_bucket.name LIKE ?", _query.Bucket+ "%")
+    db = db.Joins("JOIN ogm_file_bucket ON ogm_file_bucket.uuid = ogm_file_object.bucket")
+	db = db.Where("ogm_file_bucket.name LIKE ?", _query.Bucket+ "%")
 	if "" != _query.Filepath{
-		db = db.Where("msa_file_object.filepath LIKE ?", _query.Filepath + "%")
+		db = db.Where("ogm_file_object.filepath LIKE ?", _query.Filepath + "%")
 	}
     db = db.Model(&Object{})
 
@@ -37,6 +37,6 @@ func (this *JoinsDAO) SearchObject(_offset int64, _count int64, _query *JoinsQue
     if nil != _err {
         return
     }
-	_err = db.Offset(int(_offset)).Limit(int(_count)).Order("msa_file_object.created_at desc").Find(&_object).Error
+	_err = db.Offset(int(_offset)).Limit(int(_count)).Order("ogm_file_object.created_at desc").Find(&_object).Error
 	return
 }

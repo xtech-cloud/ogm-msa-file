@@ -1,7 +1,7 @@
 package engine
 
 import (
-	proto "github.com/xtech-cloud/omo-msp-file/proto/file"
+	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
 )
 
 func Prepare(_engine int, _address string, _scope string, _uname string, _accessKey string, _accessSecret string) (string, error) {

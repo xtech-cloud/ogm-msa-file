@@ -3,14 +3,14 @@ package handler
 import (
 	"context"
 	"errors"
-	"omo-msa-file/engine"
-	"omo-msa-file/model"
-	"omo-msa-file/publisher"
+	"ogm-msa-file/engine"
+	"ogm-msa-file/model"
+	"ogm-msa-file/publisher"
 	"path"
 	"strings"
 
 	"github.com/micro/go-micro/v2/logger"
-	proto "github.com/xtech-cloud/omo-msp-file/proto/file"
+	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
 )
 
 type Object struct{}

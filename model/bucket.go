@@ -26,7 +26,7 @@ var ErrBucketExists = errors.New("bucket exists")
 var ErrBucketNotFound = errors.New("bucket not found")
 
 func (Bucket) TableName() string {
-	return "msa_file_bucket"
+	return "ogm_file_bucket"
 }
 
 type BucketQuery struct {

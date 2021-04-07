@@ -21,7 +21,7 @@ var ErrObjectExists = errors.New("object exists")
 var ErrObjectNotFound = errors.New("object not found")
 
 func (Object) TableName() string {
-	return "msa_file_object"
+	return "ogm_file_object"
 }
 
 type ObjectDAO struct {

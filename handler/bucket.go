@@ -3,12 +3,12 @@ package handler
 import (
 	"context"
 	"errors"
-	"omo-msa-file/config"
-	"omo-msa-file/model"
-	"omo-msa-file/publisher"
+	"ogm-msa-file/config"
+	"ogm-msa-file/model"
+	"ogm-msa-file/publisher"
 
 	"github.com/micro/go-micro/v2/logger"
-	proto "github.com/xtech-cloud/omo-msp-file/proto/file"
+	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
 )
 
 type Bucket struct{}

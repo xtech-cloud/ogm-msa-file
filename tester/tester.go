@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"omo-msa-file/config"
+	"ogm-msa-file/config"
 	"time"
 
 	"github.com/micro/go-micro/v2"
@@ -11,8 +11,8 @@ import (
 	"github.com/micro/go-micro/v2/metadata"
 	_ "github.com/micro/go-plugins/registry/consul/v2"
 	_ "github.com/micro/go-plugins/registry/etcdv3/v2"
-	proto "github.com/xtech-cloud/omo-msp-file/proto/file"
-	pn "github.com/xtech-cloud/omo-msp-notification/proto/notification"
+	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
+	pn "github.com/xtech-cloud/ogm-msp-notification/proto/notification"
 )
 
 type Notification struct {

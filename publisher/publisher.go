@@ -3,11 +3,11 @@ package publisher
 import (
 	"context"
 	"encoding/json"
-	"omo-msa-file/config"
+	"ogm-msa-file/config"
 
 	"github.com/micro/go-micro/v2"
 	"github.com/micro/go-micro/v2/logger"
-	proto "github.com/xtech-cloud/omo-msp-notification/proto/notification"
+	proto "github.com/xtech-cloud/ogm-msp-notification/proto/notification"
 )
 
 var (
