@@ -3,8 +3,6 @@ package model
 import (
 	"errors"
 	"time"
-
-	"gorm.io/gorm"
 )
 
 type Bucket struct {
@@ -113,8 +111,8 @@ func (this *BucketDAO) QueryOne(_query *BucketQuery) (*Bucket, error) {
 	}
 
 	var bucket Bucket
-	err := db.First(&bucket).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	err := db.Limit(1).Find(&bucket).Error
+	if bucket.UUID == "" {
 		return nil, ErrBucketNotFound
 	}
 	return &bucket, err
@@ -123,8 +121,8 @@ func (this *BucketDAO) QueryOne(_query *BucketQuery) (*Bucket, error) {
 func (this *BucketDAO) Get(_uuid string) (*Bucket, error) {
 	db := this.conn.DB.Model(&Bucket{}).Where("uuid = ?", _uuid)
 	var bucket Bucket
-	err := db.First(&bucket).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	err := db.Limit(1).Find(&bucket).Error
+	if bucket.UUID == "" {
 		return nil, ErrBucketNotFound
 	}
 	return &bucket, err

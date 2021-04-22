@@ -2,7 +2,6 @@ package model
 
 import (
 	"errors"
-	"gorm.io/gorm"
 	"time"
 )
 
@@ -142,18 +141,19 @@ func (this *ObjectDAO) QueryOne(_query *ObjectQuery) (*Object, error) {
 	}
 
 	var object Object
-	err := db.First(&object).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	err := db.Limit(1).Find(&object).Error
+    if "" == object.UUID {
 		return nil, ErrObjectNotFound
-	}
+    }
 	return &object, err
 }
 
 func (this *ObjectDAO) Get(_uuid string) (*Object, error) {
     var object Object
-	err := this.conn.DB.Model(&Object{}).Where("uuid = ?", _uuid).First(&object).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
+	db := this.conn.DB.Model(&Object{}).Where("uuid = ?", _uuid)
+	err := db.Limit(1).Find(&object).Error
+    if "" == object.UUID {
 		return nil, ErrObjectNotFound
-	}
+    }
 	return &object, err
 }

@@ -7,25 +7,15 @@ service:
   ttl: 15
   interval: 10
 logger:
-  level: info
+  level: trace
   dir: /var/log/ogm/
 database:
   lite: true
-  timeout: 10
   mysql:
-    address: 127.0.0.1:3306
+    address: localhost:3306
     user: root
     password: mysql@OMO
-    db: ogm_file
+    db: ogm
   sqlite:
     path: /tmp/ogm-file.db
-publisher:
-- /bucket/make
-- /bucket/updateengine
-- /bucket/updatecapacity
-- /bucket/resettoken
-- /bucket/remove
-- /object/prepare
-- /object/flush
-- /object/remove
 `

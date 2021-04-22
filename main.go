@@ -7,7 +7,6 @@ import (
 	"ogm-msa-file/config"
 	"ogm-msa-file/handler"
 	"ogm-msa-file/model"
-	"ogm-msa-file/publisher"
 	"os"
 	"path/filepath"
 	"time"
@@ -34,9 +33,6 @@ func main() {
 
 	// Initialise service
 	service.Init()
-
-	// Register publisher
-	publisher.DefaultPublisher = micro.NewPublisher(config.Schema.Service.Name + ".notification", service.Client())
 
 	// Register Handler
 	proto.RegisterHealthyHandler(service.Server(), new(handler.Healthy))

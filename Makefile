@@ -84,16 +84,9 @@ call:
 	MICRO_REGISTRY=consul micro call xtc.api.ogm.file Bucket.Remove '{"uuid":"132b6c5fc9193d6ae58027ae302ab67b"}'
 	MICRO_REGISTRY=consul micro call xtc.api.ogm.file Bucket.Remove '{"uuid":"f5ddaf0ca7929578b408c909429f68f2"}'
 
-.PHONY: tester
-tester:
-	mkdir -p ./bin
-	go build -o ./bin/ ./tester
-	./bin/tester
-
 .PHONY: post
 post:
 	curl -X POST -d '{"msg":"hello"}' 127.0.0.1:8080/ogm/file/Healthy/Echo
-	curl -X POST -d '{}' 127.0.0.1:8080/ogm/file/Bucket/List
 
 .PHONY: bm
 bm:

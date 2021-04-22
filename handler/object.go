@@ -5,7 +5,6 @@ import (
 	"errors"
 	"ogm-msa-file/engine"
 	"ogm-msa-file/model"
-	"ogm-msa-file/publisher"
 	"path"
 	"strings"
 
@@ -65,9 +64,6 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 	_rsp.Address = bucket.Address
 	_rsp.Engine = proto.Engine(bucket.Engine)
 	_rsp.AccessToken = accessToken
-	// 发布消息
-	ctx := buildNotifyContext(_ctx, "root")
-	publisher.Publish(ctx, "/object/prepare", _req, _rsp)
 	return nil
 }
 
@@ -147,9 +143,6 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		}
 	}
 
-	// 发布消息
-	ctx := buildNotifyContext(_ctx, "root")
-	publisher.Publish(ctx, "/object/flush", _req, _rsp)
 	return nil
 }
 
@@ -462,8 +455,8 @@ func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractReque
 	}
 
     uname := object.MD5 + path.Ext(object.Filepath)
-    // 有效期10秒
-	_, err = engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 10, bucket.AccessKey, bucket.AccessSecret)
+    // 有效期60秒
+	_, err = engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 60, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}

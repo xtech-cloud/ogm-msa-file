@@ -426,8 +426,6 @@ github.com/xeipuuv/gojsonschema v1.1.0/go.mod h1:5yf86TLmAcydyeJq5YvxkGPE2fm/u4m
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xtech-cloud/ogm-msp-file v1.6.0 h1:1xuNkgoOMvq82XomKXXIZzYXv+MhYn8hjyWRgUnW08M=
 github.com/xtech-cloud/ogm-msp-file v1.6.0/go.mod h1:xqWErKDT/Ta/VonQ7e4jOiCGFXvQ2j3vqafRrEQawrw=
-github.com/xtech-cloud/ogm-msp-notification v1.0.0 h1:TvrPB33dwQTrDjjfmlER0Khh1kv1+Rp4zuyiEY6z06Q=
-github.com/xtech-cloud/ogm-msp-notification v1.0.0/go.mod h1:rLwfe6jAyYgmMUanVhxbBHKniulvITG2w77jN5j64dg=
 go.etcd.io/bbolt v1.3.4/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.20.2/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=

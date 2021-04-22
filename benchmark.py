@@ -24,7 +24,7 @@ options = {
         'content-type':'application/json;charset=UTF-8'
         }
 
-thread_count = 50
+thread_count = 20
 invoke_count = 20
 interval = 0
 

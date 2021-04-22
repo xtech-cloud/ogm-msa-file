@@ -5,7 +5,6 @@ import (
 	"errors"
 	"ogm-msa-file/config"
 	"ogm-msa-file/model"
-	"ogm-msa-file/publisher"
 
 	"github.com/micro/go-micro/v2/logger"
 	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
@@ -60,10 +59,6 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
-
-    // 发布消息
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "/bucket/make", _req, _rsp)
 	return err
 }
 
@@ -144,9 +139,6 @@ func (this *Bucket) UpdateEngine(_ctx context.Context, _req *proto.BucketUpdateE
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
-    // 发布消息
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "/bucket/updateengine", _req, _rsp)
 	return err
 }
 
@@ -172,9 +164,6 @@ func (this *Bucket) UpdateCapacity(_ctx context.Context, _req *proto.BucketUpdat
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
-    // 发布消息
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "/bucket/updatecapacity", _req, _rsp)
 	return err
 }
 
@@ -200,9 +189,6 @@ func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetToke
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
-    // 发布消息
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "/bucket/resettoken", _req, _rsp)
 	return err
 }
 
@@ -223,9 +209,6 @@ func (this *Bucket) Remove(_ctx context.Context, _req *proto.BucketRemoveRequest
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
-    // 发布消息
-    ctx := buildNotifyContext(_ctx, "root")
-    publisher.Publish(ctx, "/bucket/remove", _req, _rsp)
 	return err
 }
 
