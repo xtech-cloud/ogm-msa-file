@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 
-	"github.com/micro/go-micro/v2/logger"
+	"github.com/asim/go-micro/v3/logger"
 
 	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
 )

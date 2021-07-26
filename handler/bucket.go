@@ -6,7 +6,7 @@ import (
 	"ogm-msa-file/config"
 	"ogm-msa-file/model"
 
-	"github.com/micro/go-micro/v2/logger"
+	"github.com/asim/go-micro/v3/logger"
 	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
 )
 
@@ -36,7 +36,7 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 
     // 本地数据库使用存储桶名生成UUID，方便测试和开发
 	uuid := model.NewUUID()
-	if config.Schema.Database.Lite {
+	if "sqlite" == config.Schema.Database.Driver{
 		uuid = model.ToUUID(_req.Name)
 	}
 

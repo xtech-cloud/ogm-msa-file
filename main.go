@@ -11,8 +11,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/micro/go-micro/v2"
-	"github.com/micro/go-micro/v2/logger"
+	"github.com/asim/go-micro/v3"
+	"github.com/asim/go-micro/v3/logger"
+	"github.com/asim/go-micro/plugins/server/grpc/v3"
 	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
 )
 
@@ -24,6 +25,7 @@ func main() {
 
 	// New Service
 	service := micro.NewService(
+        micro.Server(grpc.NewServer()),
 		micro.Name(config.Schema.Service.Name),
 		micro.Version(BuildVersion),
 		micro.RegisterTTL(time.Second*time.Duration(config.Schema.Service.TTL)),
