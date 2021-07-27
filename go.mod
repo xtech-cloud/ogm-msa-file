@@ -9,6 +9,10 @@ require (
 	github.com/asim/go-micro/plugins/registry/etcd/v3 v3.0.0-20210721080634-e1bc7e302871
 	github.com/asim/go-micro/plugins/server/grpc/v3 v3.0.0-20210721080634-e1bc7e302871
 	github.com/asim/go-micro/v3 v3.5.2
+	github.com/containerd/containerd v1.5.4 // indirect
+	github.com/gogo/googleapis v1.4.1 // indirect
+	github.com/minio/minio-go/v7 v7.0.12
+	github.com/opencontainers/selinux v1.8.2 // indirect
 	github.com/qiniu/api.v7/v7 v7.8.2
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1

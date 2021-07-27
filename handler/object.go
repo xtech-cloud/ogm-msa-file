@@ -317,6 +317,7 @@ func (this *Object) Search(_ctx context.Context, _req *proto.ObjectSearchRequest
 	return nil
 }
 
+/// 发布
 func (this *Object) Publish(_ctx context.Context, _req *proto.ObjectPublishRequest, _rsp *proto.ObjectPublishResponse) error {
 	logger.Infof("Received Object.Publish, req is %v", _req)
 	_rsp.Status = &proto.Status{}
@@ -352,17 +353,16 @@ func (this *Object) Publish(_ctx context.Context, _req *proto.ObjectPublishReque
 	}
 
     uname := object.MD5 + path.Ext(object.Filepath)
-    // 有效期100年
-	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 60*60*24*365*100, bucket.AccessKey, bucket.AccessSecret)
+	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
+    // 将永久链接赋值给文件对象
     object.URL = url
     err = dao.Update(object)
     if nil != err {
         return nil
     }
-    // 赋值对象访问地址
 	_rsp.Url = url
 	return nil
 }
@@ -411,7 +411,7 @@ func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewReque
 
     uname := object.MD5 + path.Ext(object.Filepath)
     //有效期5分钟
-	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 300, bucket.AccessKey, bucket.AccessSecret)
+	url, err := engine.Preview(bucket.Engine, bucket.Address, bucket.Scope, uname, 300, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
@@ -456,7 +456,7 @@ func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractReque
 
     uname := object.MD5 + path.Ext(object.Filepath)
     // 有效期60秒
-	_, err = engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, 60, bucket.AccessKey, bucket.AccessSecret)
+	_, err = engine.Preview(bucket.Engine, bucket.Address, bucket.Scope, uname, 60, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
