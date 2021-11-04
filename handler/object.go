@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 	"errors"
-	"ogm-msa-file/engine"
-	"ogm-msa-file/model"
+	"ogm-file/engine"
+	"ogm-file/model"
 	"path"
 	"strings"
 
@@ -52,7 +52,9 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 
 	accessToken, err := engine.Prepare(bucket.Engine, bucket.Address, bucket.Scope, _req.Uname, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
-		return err
+		_rsp.Status.Code = 9
+		_rsp.Status.Message = err.Error()
+		return nil
 	}
 
 	if "" == accessToken {
@@ -61,7 +63,7 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 		return nil
 	}
 
-	_rsp.Address = bucket.Address
+	_rsp.Url = bucket.Url
 	_rsp.Engine = proto.Engine(bucket.Engine)
 	_rsp.AccessToken = accessToken
 	return nil
@@ -171,31 +173,31 @@ func (this *Object) Get(_ctx context.Context, _req *proto.ObjectGetRequest, _rsp
 	logger.Infof("Received Object.Get, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
-	if "" == _req.Uuid{
+	if "" == _req.Uuid {
 		_rsp.Status.Code = 1
 		_rsp.Status.Message = "uuid is required"
 		return nil
 	}
 
 	dao := model.NewObjectDAO(nil)
-    object, err := dao.Get(_req.Uuid)
-    if nil != err {
-        if errors.Is(err, model.ErrObjectNotFound) {
-            _rsp.Status.Code = 2
-            _rsp.Status.Message = err.Error()
-            return nil
-        } else {
-            return err
-        }
-    }
+	object, err := dao.Get(_req.Uuid)
+	if nil != err {
+		if errors.Is(err, model.ErrObjectNotFound) {
+			_rsp.Status.Code = 2
+			_rsp.Status.Message = err.Error()
+			return nil
+		} else {
+			return err
+		}
+	}
 
-    _rsp.Entity = &proto.ObjectEntity{
-        Uuid: object.UUID,
-        Filepath: object.Filepath,
-        Md5: object.MD5,
-        Url: object.URL,
-        Size: object.Size,
-    }
+	_rsp.Entity = &proto.ObjectEntity{
+		Uuid:     object.UUID,
+		Filepath: object.Filepath,
+		Md5:      object.MD5,
+		Url:      object.URL,
+		Size:     object.Size,
+	}
 	return nil
 }
 
@@ -204,27 +206,27 @@ func (this *Object) Find(_ctx context.Context, _req *proto.ObjectFindRequest, _r
 	_rsp.Status = &proto.Status{}
 
 	dao := model.NewObjectDAO(nil)
-    object, err := dao.QueryOne(&model.ObjectQuery{
-        Bucket: _req.Bucket,
-        Filepath: _req.Filepath,
-    })
-    if nil != err {
-        if errors.Is(err, model.ErrObjectNotFound) {
-            _rsp.Status.Code = 2
-            _rsp.Status.Message = err.Error()
-            return nil
-        } else {
-            return err
-        }
-    }
+	object, err := dao.QueryOne(&model.ObjectQuery{
+		Bucket:   _req.Bucket,
+		Filepath: _req.Filepath,
+	})
+	if nil != err {
+		if errors.Is(err, model.ErrObjectNotFound) {
+			_rsp.Status.Code = 2
+			_rsp.Status.Message = err.Error()
+			return nil
+		} else {
+			return err
+		}
+	}
 
-    _rsp.Entity = &proto.ObjectEntity{
-        Uuid: object.UUID,
-        Filepath: object.Filepath,
-        Md5: object.MD5,
-        Url: object.URL,
-        Size: object.Size,
-    }
+	_rsp.Entity = &proto.ObjectEntity{
+		Uuid:     object.UUID,
+		Filepath: object.Filepath,
+		Md5:      object.MD5,
+		Url:      object.URL,
+		Size:     object.Size,
+	}
 	return nil
 }
 
@@ -238,6 +240,12 @@ func (this *Object) Remove(_ctx context.Context, _req *proto.ObjectRemoveRequest
 func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _rsp *proto.ObjectListResponse) error {
 	logger.Infof("Received Object.List, req is %v", _req)
 	_rsp.Status = &proto.Status{}
+
+	if _req.Bucket == "" {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "bucket is required"
+		return nil
+	}
 
 	offset := int64(0)
 	count := int64(100)
@@ -254,6 +262,8 @@ func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _r
 
 	total, objects, err := dao.List(offset, count, _req.Bucket)
 	if nil != err {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
 		return nil
 	}
 
@@ -292,13 +302,9 @@ func (this *Object) Search(_ctx context.Context, _req *proto.ObjectSearchRequest
 		count = _req.Count
 	}
 
-	dao := model.NewJoinsDAO(nil)
+	dao := model.NewObjectDAO(nil)
 
-	query := model.JoinsQuery{
-		Bucket:   _req.Bucket,
-		Filepath: _req.Prefix,
-	}
-	total, objects, err := dao.SearchObject(offset, count, &query)
+	total, objects, err := dao.Search(offset, count, _req.Bucket, _req.Prefix)
 	if nil != err {
 		return nil
 	}
@@ -352,17 +358,17 @@ func (this *Object) Publish(_ctx context.Context, _req *proto.ObjectPublishReque
 		}
 	}
 
-    uname := object.MD5 + path.Ext(object.Filepath)
+	uname := object.MD5 + path.Ext(object.Filepath)
 	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
-    // 将永久链接赋值给文件对象
-    object.URL = url
-    err = dao.Update(object)
-    if nil != err {
-        return nil
-    }
+	// 将永久链接赋值给文件对象
+	object.URL = url
+	err = dao.Update(object)
+	if nil != err {
+		return nil
+	}
 	_rsp.Url = url
 	return nil
 }
@@ -389,13 +395,13 @@ func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewReque
 		}
 	}
 
-    // 如果对象有公开访问地址，返回公开访问地址
-    if "" != object.URL {
-        _rsp.Url = object.URL
-        return nil
-    }
+	// 如果对象有公开访问地址，返回公开访问地址
+	if "" != object.URL {
+		_rsp.Url = object.URL
+		return nil
+	}
 
-    // 如果对象没有公开访问地址，返回一个有效期5分钟的临时访问地址
+	// 如果对象没有公开访问地址，返回一个有效期5分钟的临时访问地址
 
 	daoBucket := model.NewBucketDAO(nil)
 	bucket, err := daoBucket.Get(object.Bucket)
@@ -409,13 +415,13 @@ func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewReque
 		}
 	}
 
-    uname := object.MD5 + path.Ext(object.Filepath)
-    //有效期5分钟
+	uname := object.MD5 + path.Ext(object.Filepath)
+	//有效期5分钟
 	url, err := engine.Preview(bucket.Engine, bucket.Address, bucket.Scope, uname, 300, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
-    //!注意： 临时的访问地址不能赋值给Object.URL
+	//!注意： 临时的访问地址不能赋值给Object.URL
 	_rsp.Url = url
 	return nil
 }
@@ -454,17 +460,17 @@ func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractReque
 		}
 	}
 
-    uname := object.MD5 + path.Ext(object.Filepath)
-    // 有效期60秒
+	uname := object.MD5 + path.Ext(object.Filepath)
+	// 有效期60秒
 	_, err = engine.Preview(bucket.Engine, bucket.Address, bucket.Scope, uname, 60, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
-    // 置空对象访问地址
-    object.URL = ""
-    err = dao.Update(object)
-    if nil != err {
-        return nil
-    }
+	// 置空对象访问地址
+	object.URL = ""
+	err = dao.Update(object)
+	if nil != err {
+		return nil
+	}
 	return nil
 }

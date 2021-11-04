@@ -28,7 +28,7 @@ type ObjectDAO struct {
 }
 
 type ObjectQuery struct {
-	Bucket string
+	Bucket   string
 	Filepath string
 	MD5      string
 }
@@ -86,7 +86,7 @@ func (this *ObjectDAO) Update(_object *Object) error {
 		return ErrObjectNotFound
 	}
 
-    // 使用select选定更新字段，零值也会被更新
+	// 使用select选定更新字段，零值也会被更新
 	return this.conn.DB.Select("filepath", "url", "size", "md5").Updates(_object).Error
 }
 
@@ -105,26 +105,46 @@ func (this *ObjectDAO) Delete(_filepath string) error {
 }
 
 func (this *ObjectDAO) List(_offset int64, _count int64, _bucket string) (_total int64, _object []*Object, _err error) {
-    _total = int64(0)
-    _err = nil
-    _object = make([]*Object, 0)
+	_total = int64(0)
+	_err = nil
+	_object = make([]*Object, 0)
 
-    db := this.conn.DB.Model(&Object{})
-    if "" != _bucket {
-        db = db.Where("bucket = ?", _bucket)
-    }
-    _err = db.Count(&_total).Error
-    if nil != _err {
-        return
-    }
+	db := this.conn.DB.Model(&Object{})
+	if "" != _bucket {
+		db = db.Where("bucket = ?", _bucket)
+	}
+	_err = db.Count(&_total).Error
+	if nil != _err {
+		return
+	}
 	_err = db.Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&_object).Error
-    return
+	return
+}
+
+func (this *ObjectDAO) Search(_offset int64, _count int64, _bucket string, _prefix string) (_total int64, _object []*Object, _err error) {
+	_total = int64(0)
+	_err = nil
+	_object = make([]*Object, 0)
+
+	db := this.conn.DB.Model(&Object{})
+	if "" != _bucket {
+		db = db.Where("bucket = ?", _bucket)
+	}
+	if "" != _prefix {
+		db = db.Where("prefix LIKE ?", _prefix+"%")
+	}
+	_err = db.Count(&_total).Error
+	if nil != _err {
+		return
+	}
+	_err = db.Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&_object).Error
+	return
 }
 
 func (this *ObjectDAO) QueryOne(_query *ObjectQuery) (*Object, error) {
 	db := this.conn.DB.Model(&Object{})
 	hasWhere := false
-	if "" != _query.Bucket{
+	if "" != _query.Bucket {
 		db = db.Where("bucket = ?", _query.Bucket)
 		hasWhere = true
 	}
@@ -142,18 +162,18 @@ func (this *ObjectDAO) QueryOne(_query *ObjectQuery) (*Object, error) {
 
 	var object Object
 	err := db.Limit(1).Find(&object).Error
-    if "" == object.UUID {
+	if "" == object.UUID {
 		return nil, ErrObjectNotFound
-    }
+	}
 	return &object, err
 }
 
 func (this *ObjectDAO) Get(_uuid string) (*Object, error) {
-    var object Object
+	var object Object
 	db := this.conn.DB.Model(&Object{}).Where("uuid = ?", _uuid)
 	err := db.Limit(1).Find(&object).Error
-    if "" == object.UUID {
+	if "" == object.UUID {
 		return nil, ErrObjectNotFound
-    }
+	}
 	return &object, err
 }

@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -30,11 +31,16 @@ func prepareMinio(_address, _scope string, _uname string, _accessKey string, _ac
 	}
 
 	_, err = minioClient.StatObject(context.Background(), _scope, _uname, minio.StatObjectOptions{})
-	if err != nil {
-		return "", err
+    // 文件存在
+	if err == nil {
+		return "", nil
 	}
-	//TODO return the policy of bucket
-	return "POLICY", nil
+    if err.Error() != "The specified key does not exist." {
+        return "", err
+    }
+
+    token := fmt.Sprintf("%s %s", _accessKey, _accessSecret)
+	return token , nil
 }
 
 func flushMinio(_address, _scope string, _uname string, _accessKey string, _accessSecret string) (int64, error) {

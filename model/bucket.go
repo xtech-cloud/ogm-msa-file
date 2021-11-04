@@ -16,6 +16,7 @@ type Bucket struct {
 	Scope        string `gorm:"column:scope;type:varchar(512)"`
 	AccessKey    string `gorm:"column:access_key;type:varchar(1024)"`
 	AccessSecret string `gorm:"column:access_secret;type:varchar(1024)"`
+	Url          string `gorm:"column:url;type:varchar(1024)"`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -76,6 +77,7 @@ func (this *BucketDAO) Update(_bucket *Bucket) error {
 		return ErrBucketNotFound
 	}
 
+	// 只更新非零值的字段
 	return this.conn.DB.Updates(_bucket).Error
 }
 

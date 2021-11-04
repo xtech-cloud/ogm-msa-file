@@ -5,7 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"ogm-msa-file/config"
+	"ogm-file/config"
+	"time"
 
 	"github.com/asim/go-micro/v3/logger"
 	uuid "github.com/satori/go.uuid"
@@ -37,8 +38,17 @@ func Setup() {
 		mysql_db := config.Schema.Database.MySQL.DB
 		dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8&parseTime=True", mysql_user, mysql_passwd, mysql_addr, mysql_db)
 		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		sqlDB, err := db.DB()
+		if nil != err {
+			panic(err)
+		}
+		sqlDB.SetConnMaxIdleTime(time.Minute * time.Duration(config.Schema.Database.MySQL.MaxIdleTime))
+		sqlDB.SetConnMaxLifetime(time.Minute * time.Duration(config.Schema.Database.MySQL.MaxLifeTime))
+		sqlDB.SetMaxIdleConns(config.Schema.Database.MySQL.MaxIdleConns)
+		sqlDB.SetMaxOpenConns(config.Schema.Database.MySQL.MaxOpenConns)
+
 	} else {
-		logger.Fatal("the driver of database is missing")
+		panic("the driver of database is missing")
 	}
 
 	if nil != err {

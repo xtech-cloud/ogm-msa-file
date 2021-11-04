@@ -17,7 +17,7 @@ import (
 	"github.com/asim/go-micro/v3/config/source/memory"
 	"github.com/asim/go-micro/v3/logger"
 	"github.com/sirupsen/logrus"
-	goYAML "gopkg.in/yaml.v3"
+	goYAML "gopkg.in/yaml.v2"
 )
 
 type ConfigDefine struct {

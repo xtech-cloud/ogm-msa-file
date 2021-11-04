@@ -3,8 +3,8 @@ package handler
 import (
 	"context"
 	"errors"
-	"ogm-msa-file/config"
-	"ogm-msa-file/model"
+	"ogm-file/config"
+	"ogm-file/model"
 
 	"github.com/asim/go-micro/v3/logger"
 	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
@@ -34,9 +34,9 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		engine = int(_req.Engine)
 	}
 
-    // 本地数据库使用存储桶名生成UUID，方便测试和开发
+	// 本地数据库使用存储桶名生成UUID，方便测试和开发
 	uuid := model.NewUUID()
-	if "sqlite" == config.Schema.Database.Driver{
+	if "sqlite" == config.Schema.Database.Driver {
 		uuid = model.ToUUID(_req.Name)
 	}
 
@@ -50,6 +50,7 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		Scope:        _req.Scope,
 		AccessKey:    _req.AccessKey,
 		AccessSecret: _req.AccessSecret,
+		Url:          _req.Url,
 	}
 
 	dao := model.NewBucketDAO(nil)
@@ -67,7 +68,7 @@ func (this *Bucket) List(_ctx context.Context, _req *proto.BucketListRequest, _r
 	_rsp.Status = &proto.Status{}
 
 	offset := int64(0)
-	count := int64(100)
+	count := int64(0)
 
 	if _req.Offset > 0 {
 		offset = _req.Offset
@@ -102,59 +103,32 @@ func (this *Bucket) List(_ctx context.Context, _req *proto.BucketListRequest, _r
 			Scope:        bucket.Scope,
 			AccessKey:    bucket.AccessKey,
 			AccessSecret: bucket.AccessSecret,
+			Url:          bucket.Url,
 		}
 	}
 	return nil
 }
 
-func (this *Bucket) UpdateEngine(_ctx context.Context, _req *proto.BucketUpdateEngineRequest, _rsp *proto.BlankResponse) error {
-	logger.Infof("Received Bucket.UpdateEngine, req is %v", _req)
+func (this *Bucket) Update(_ctx context.Context, _req *proto.BucketUpdateRequest, _rsp *proto.BlankResponse) error {
+	logger.Infof("Received Bucket.Update, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
 	if "" == _req.Uuid {
 		_rsp.Status.Code = 1
 		_rsp.Status.Message = "uuid is required"
-		return nil
-	}
-
-	if proto.Engine_ENGINE_INVALID == _req.Engine {
-		_rsp.Status.Code = 1
-		_rsp.Status.Message = "engine is required"
 		return nil
 	}
 
 	bucket := &model.Bucket{
 		UUID:         _req.Uuid,
+		Name:         _req.Name,
+		TotalSize:    _req.Capacity,
 		Engine:       int(_req.Engine),
 		Address:      _req.Address,
 		Scope:        _req.Scope,
 		AccessKey:    _req.AccessKey,
 		AccessSecret: _req.AccessSecret,
-	}
-
-	dao := model.NewBucketDAO(nil)
-	err := dao.Update(bucket)
-	if errors.Is(err, model.ErrBucketNotFound) {
-		_rsp.Status.Code = 2
-		_rsp.Status.Message = err.Error()
-		return nil
-	}
-	return err
-}
-
-func (this *Bucket) UpdateCapacity(_ctx context.Context, _req *proto.BucketUpdateCapacityRequest, _rsp *proto.BlankResponse) error {
-	logger.Infof("Received Bucket.UpdateCapacity, req is %v", _req)
-	_rsp.Status = &proto.Status{}
-
-	if "" == _req.Uuid {
-		_rsp.Status.Code = 1
-		_rsp.Status.Message = "uuid is required"
-		return nil
-	}
-
-	bucket := &model.Bucket{
-		UUID:      _req.Uuid,
-		TotalSize: _req.Capacity,
+		Url:          _req.Url,
 	}
 
 	dao := model.NewBucketDAO(nil)
@@ -240,6 +214,7 @@ func (this *Bucket) Get(_ctx context.Context, _req *proto.BucketGetRequest, _rsp
 		Scope:        bucket.Scope,
 		AccessKey:    bucket.AccessKey,
 		AccessSecret: bucket.AccessSecret,
+		Url:          bucket.Url,
 	}
 	return nil
 }
@@ -248,7 +223,7 @@ func (this *Bucket) Find(_ctx context.Context, _req *proto.BucketFindRequest, _r
 	logger.Infof("Received Bucket.Find, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
-	if "" == _req.Name{
+	if "" == _req.Name {
 		_rsp.Status.Code = 1
 		_rsp.Status.Message = "name is required"
 		return nil
@@ -275,6 +250,7 @@ func (this *Bucket) Find(_ctx context.Context, _req *proto.BucketFindRequest, _r
 		Scope:        bucket.Scope,
 		AccessKey:    bucket.AccessKey,
 		AccessSecret: bucket.AccessSecret,
+		Url:          bucket.Url,
 	}
 	return nil
 }
