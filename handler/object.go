@@ -5,8 +5,7 @@ import (
 	"errors"
 	"ogm-file/engine"
 	"ogm-file/model"
-	"path"
-	"strings"
+	"path/filepath"
 
 	"github.com/asim/go-micro/v3/logger"
 	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
@@ -116,7 +115,7 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		UUID:     model.ToUUID(_req.Bucket + _req.Path),
 		Filepath: _req.Path,
 		Bucket:   _req.Bucket,
-		MD5:      strings.TrimSuffix(_req.Uname, path.Ext(_req.Uname)),
+		MD5:      _req.Uname,
 		Size:     uint64(fsize),
 	}
 
@@ -358,8 +357,8 @@ func (this *Object) Publish(_ctx context.Context, _req *proto.ObjectPublishReque
 		}
 	}
 
-	uname := object.MD5 + path.Ext(object.Filepath)
-	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Scope, uname, bucket.AccessKey, bucket.AccessSecret)
+	filename := filepath.Base(object.Filepath)
+	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, object.MD5, filename, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
@@ -391,7 +390,9 @@ func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewReque
 			_rsp.Status.Message = err.Error()
 			return nil
 		} else {
-			return err
+			_rsp.Status.Code = -1
+			_rsp.Status.Message = err.Error()
+			return nil
 		}
 	}
 
@@ -411,15 +412,19 @@ func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewReque
 			_rsp.Status.Message = err.Error()
 			return nil
 		} else {
-			return err
+			_rsp.Status.Code = -1
+			_rsp.Status.Message = err.Error()
+			return nil
 		}
 	}
 
-	uname := object.MD5 + path.Ext(object.Filepath)
+	filename := filepath.Base(object.Filepath)
 	//有效期5分钟
-	url, err := engine.Preview(bucket.Engine, bucket.Address, bucket.Scope, uname, 300, bucket.AccessKey, bucket.AccessSecret)
+	url, err := engine.Preview(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, object.MD5, filename, 300, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
-		return err
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
 	}
 	//!注意： 临时的访问地址不能赋值给Object.URL
 	_rsp.Url = url
@@ -460,9 +465,9 @@ func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractReque
 		}
 	}
 
-	uname := object.MD5 + path.Ext(object.Filepath)
 	// 有效期60秒
-	_, err = engine.Preview(bucket.Engine, bucket.Address, bucket.Scope, uname, 60, bucket.AccessKey, bucket.AccessSecret)
+	filename := filepath.Base(object.Filepath)
+	_, err = engine.Preview(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, object.MD5, filename, 60, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
