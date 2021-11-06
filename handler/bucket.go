@@ -109,6 +109,53 @@ func (this *Bucket) List(_ctx context.Context, _req *proto.BucketListRequest, _r
 	return nil
 }
 
+func (this *Bucket) Search(_ctx context.Context, _req *proto.BucketSearchRequest, _rsp *proto.BucketSearchResponse) error {
+	logger.Infof("Received Bucket.Search, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
+	offset := int64(0)
+	count := int64(0)
+
+	if _req.Offset > 0 {
+		offset = _req.Offset
+	}
+
+	if _req.Count > 0 {
+		count = _req.Count
+	}
+
+	dao := model.NewBucketDAO(nil)
+
+	total, err := dao.CountByName(_req.Name)
+	if nil != err {
+		return nil
+	}
+	buckets, err := dao.Search(offset, count, _req.Name)
+	if nil != err {
+		return nil
+	}
+
+	_rsp.Total = uint64(total)
+	_rsp.Entity = make([]*proto.BucketEntity, len(buckets))
+	for i, bucket := range buckets {
+		_rsp.Entity[i] = &proto.BucketEntity{
+			Uuid:         bucket.UUID,
+			Name:         bucket.Name,
+			Engine:       proto.Engine(bucket.Engine),
+			TotalSize:    bucket.TotalSize,
+			UsedSize:     bucket.UsedSize,
+			Token:        bucket.Token,
+			Address:      bucket.Address,
+			Scope:        bucket.Scope,
+			AccessKey:    bucket.AccessKey,
+			AccessSecret: bucket.AccessSecret,
+			Url:          bucket.Url,
+		}
+	}
+	return nil
+}
+
+
 func (this *Bucket) Update(_ctx context.Context, _req *proto.BucketUpdateRequest, _rsp *proto.BlankResponse) error {
 	logger.Infof("Received Bucket.Update, req is %v", _req)
 	_rsp.Status = &proto.Status{}

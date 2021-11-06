@@ -121,7 +121,7 @@ func (this *ObjectDAO) List(_offset int64, _count int64, _bucket string) (_total
 	return
 }
 
-func (this *ObjectDAO) Search(_offset int64, _count int64, _bucket string, _prefix string) (_total int64, _object []*Object, _err error) {
+func (this *ObjectDAO) Search(_offset int64, _count int64, _bucket string, _prefix string, _name string) (_total int64, _object []*Object, _err error) {
 	_total = int64(0)
 	_err = nil
 	_object = make([]*Object, 0)
@@ -130,9 +130,14 @@ func (this *ObjectDAO) Search(_offset int64, _count int64, _bucket string, _pref
 	if "" != _bucket {
 		db = db.Where("bucket = ?", _bucket)
 	}
+	filepath := ""
 	if "" != _prefix {
-		db = db.Where("prefix LIKE ?", _prefix+"%")
+		filepath = filepath + _prefix 
 	}
+	if "" != _name {
+		filepath = filepath + "%" + _name + "%"
+	}
+	db = db.Where("filepath LIKE ?", filepath)
 	_err = db.Count(&_total).Error
 	if nil != _err {
 		return

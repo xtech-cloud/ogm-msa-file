@@ -52,6 +52,12 @@ func (this *BucketDAO) Count() (int64, error) {
 	return count, err
 }
 
+func (this *BucketDAO) CountByName(_name string) (int64, error) {
+	var count int64
+	err := this.conn.DB.Model(&Bucket{}).Where("name = ?", _name).Count(&count).Error
+	return count, err
+}
+
 func (this *BucketDAO) Insert(_bucket *Bucket) error {
 	var count int64
 	err := this.conn.DB.Model(&Bucket{}).Where("uuid = ? OR name = ?", _bucket.UUID, _bucket.Name).Count(&count).Error
@@ -98,6 +104,12 @@ func (this *BucketDAO) Delete(_uuid string) error {
 func (this *BucketDAO) List(_offset int64, _count int64) ([]*Bucket, error) {
 	var buckets []*Bucket
 	res := this.conn.DB.Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&buckets)
+	return buckets, res.Error
+}
+
+func (this *BucketDAO) Search(_offset int64, _count int64, _name string) ([]*Bucket, error) {
+	var buckets []*Bucket
+	res := this.conn.DB.Where("name LIKE ?", "%"+_name+"%").Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&buckets)
 	return buckets, res.Error
 }
 

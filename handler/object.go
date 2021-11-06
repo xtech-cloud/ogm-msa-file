@@ -303,7 +303,7 @@ func (this *Object) Search(_ctx context.Context, _req *proto.ObjectSearchRequest
 
 	dao := model.NewObjectDAO(nil)
 
-	total, objects, err := dao.Search(offset, count, _req.Bucket, _req.Prefix)
+	total, objects, err := dao.Search(offset, count, _req.Bucket, _req.Prefix, _req.Name)
 	if nil != err {
 		return nil
 	}

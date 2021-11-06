@@ -6,9 +6,9 @@
   },
   "openapi": "3.0.0",
   "paths": {
-    "/ogm/file/Bucket/List": {
+    "/ogm/file/Object/Search": {
       "post": {
-        "operationId": "/ogm/file/Bucket/ListPOST",
+        "operationId": "/ogm/file/Object/SearchPOST",
         "requestBody": {},
         "responses": {
           "default": {
@@ -20,10 +20,10 @@
         "x-apisix-plugins": {
           "grpc-transcode": {
             "deadline": 0,
-            "method": "List",
+            "method": "Search",
             "pb_option": [ "no_default_values" ],
             "proto_id": "18808",
-            "service": "file.Bucket"
+            "service": "file.Object"
           }
         },
         "x-apisix-priority": 0,

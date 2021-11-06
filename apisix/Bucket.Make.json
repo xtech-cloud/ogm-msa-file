@@ -21,6 +21,7 @@
           "grpc-transcode": {
             "deadline": 0,
             "method": "Make",
+            "pb_option": [ "no_default_values" ],
             "proto_id": "18808",
             "service": "file.Bucket"
           }
