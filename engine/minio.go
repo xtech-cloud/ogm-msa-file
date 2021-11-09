@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -66,6 +65,7 @@ func flushMinio(_address string, _scope string, _uname string, _accessKey string
 }
 
 func publishMinio(_address string, _url string, _scope string, _uname string, _filename string, _accessKey string, _accessSecret string) (string, error) {
+    /*
 	useSSL := false
 	minioClient, err := minio.New(_address, &minio.Options{
 		Creds:  credentials.NewStaticV4(_accessKey, _accessSecret, ""),
@@ -76,11 +76,16 @@ func publishMinio(_address string, _url string, _scope string, _uname string, _f
 	}
 
 	//TODO public是公有的返回公开链接，私有返回一个带有效期的链接
-	presignedURL, err := minioClient.PresignedGetObject(context.Background(), _scope, _uname, time.Second*24*60*60*7, nil)
-	if err != nil {
-		return "", err
-	}
-	return presignedURL.String(), nil
+	//presignedURL, err := minioClient.PresignedGetObject(context.Background(), _scope, _uname, time.Second*24*60*60*7, nil)
+	//if err != nil {
+	//	return "", err
+	//}
+	//return presignedURL.String(), nil
+    */
+	queryUrl := make(url.Values)
+	queryUrl.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", _filename))
+	targetURL := fmt.Sprintf("%s/%s/%s?%s", _url, _scope, s3utils.EncodePath(_uname), s3utils.QueryEncode(queryUrl))
+    return targetURL, nil
 }
 
 func previewMinio(_address string, _url string, _scope string, _uname string, _filename string, _expiry uint64, _accessKey string, _accessSecret string) (string, error) {
