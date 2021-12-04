@@ -674,8 +674,8 @@ github.com/xeipuuv/gojsonschema v0.0.0-20180618132009-1d523034197f/go.mod h1:5yf
 github.com/xeipuuv/gojsonschema v1.1.0/go.mod h1:5yf86TLmAcydyeJq5YvxkGPE2fm/u4myDekKRoLuqhs=
 github.com/xeipuuv/gojsonschema v1.2.0/go.mod h1:anYRn/JVcOK2ZgGU+IjEV4nwlhoK5sQluxsYJ78Id3Y=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
-github.com/xtech-cloud/ogm-msp-file v3.6.0+incompatible h1:TJFklvD9zGZr5yOEpbZAUIY9pT0ay0kVfVmN0KzcrTc=
-github.com/xtech-cloud/ogm-msp-file v3.6.0+incompatible/go.mod h1:xqWErKDT/Ta/VonQ7e4jOiCGFXvQ2j3vqafRrEQawrw=
+github.com/xtech-cloud/ogm-msp-file v3.7.0+incompatible h1:rUXvHKyfw5l21FQbmz/XTHB/qU1vnP7DPh51Aq2ywks=
+github.com/xtech-cloud/ogm-msp-file v3.7.0+incompatible/go.mod h1:xqWErKDT/Ta/VonQ7e4jOiCGFXvQ2j3vqafRrEQawrw=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=

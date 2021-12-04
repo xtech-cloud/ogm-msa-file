@@ -68,7 +68,7 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 	return nil
 }
 
-func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, _rsp *proto.BlankResponse) error {
+func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, _rsp *proto.UuidResponse) error {
 	logger.Infof("Received Object.Flush, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
@@ -144,6 +144,7 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		}
 	}
 
+    _rsp.Uuid = object.UUID
 	return nil
 }
 
@@ -229,10 +230,11 @@ func (this *Object) Find(_ctx context.Context, _req *proto.ObjectFindRequest, _r
 	return nil
 }
 
-func (this *Object) Remove(_ctx context.Context, _req *proto.ObjectRemoveRequest, _rsp *proto.BlankResponse) error {
+func (this *Object) Remove(_ctx context.Context, _req *proto.ObjectRemoveRequest, _rsp *proto.UuidResponse) error {
 	logger.Infof("Received Object.Remove, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
+    _rsp.Uuid = _req.Uuid
 	return nil
 }
 
@@ -431,7 +433,7 @@ func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewReque
 	return nil
 }
 
-func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractRequest, _rsp *proto.BlankResponse) error {
+func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractRequest, _rsp *proto.UuidResponse) error {
 	logger.Infof("Received Object.Retract, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
@@ -477,5 +479,7 @@ func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractReque
 	if nil != err {
 		return nil
 	}
+
+    _rsp.Uuid = _req.Uuid
 	return nil
 }

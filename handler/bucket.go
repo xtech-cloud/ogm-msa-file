@@ -12,7 +12,7 @@ import (
 
 type Bucket struct{}
 
-func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _rsp *proto.BlankResponse) error {
+func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _rsp *proto.UuidResponse) error {
 	logger.Infof("Received Bucket.Make, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
@@ -60,6 +60,8 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+
+	_rsp.Uuid = uuid
 	return err
 }
 
@@ -155,8 +157,7 @@ func (this *Bucket) Search(_ctx context.Context, _req *proto.BucketSearchRequest
 	return nil
 }
 
-
-func (this *Bucket) Update(_ctx context.Context, _req *proto.BucketUpdateRequest, _rsp *proto.BlankResponse) error {
+func (this *Bucket) Update(_ctx context.Context, _req *proto.BucketUpdateRequest, _rsp *proto.UuidResponse) error {
 	logger.Infof("Received Bucket.Update, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
@@ -185,10 +186,12 @@ func (this *Bucket) Update(_ctx context.Context, _req *proto.BucketUpdateRequest
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+
+	_rsp.Uuid = _req.Uuid
 	return err
 }
 
-func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetTokenRequest, _rsp *proto.BlankResponse) error {
+func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetTokenRequest, _rsp *proto.UuidResponse) error {
 	logger.Infof("Received Bucket.ResetToken, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
@@ -210,10 +213,11 @@ func (this *Bucket) ResetToken(_ctx context.Context, _req *proto.BucketResetToke
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+	_rsp.Uuid = _req.Uuid
 	return err
 }
 
-func (this *Bucket) Remove(_ctx context.Context, _req *proto.BucketRemoveRequest, _rsp *proto.BlankResponse) error {
+func (this *Bucket) Remove(_ctx context.Context, _req *proto.BucketRemoveRequest, _rsp *proto.UuidResponse) error {
 	logger.Infof("Received Bucket.Remove, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
@@ -230,6 +234,7 @@ func (this *Bucket) Remove(_ctx context.Context, _req *proto.BucketRemoveRequest
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
+	_rsp.Uuid = _req.Uuid
 	return err
 }
 

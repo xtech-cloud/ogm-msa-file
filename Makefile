@@ -84,15 +84,20 @@ call:
 	gomu --registry=etcd --client=grpc call xtc.ogm.file Bucket.Remove '{"uuid":"132b6c5fc9193d6ae58027ae302ab67b"}'
 	gomu --registry=etcd --client=grpc call xtc.ogm.file Bucket.Remove '{"uuid":"f5ddaf0ca7929578b408c909429f68f2"}'
 
+
+
 .PHONY: post
 post:
-	curl -X POST -d '{"msg":"hello"}' -H 'Content-Type:application/json' localhost/ogm/file/Healthy/Echo
-
-.PHONY: bm
-bm:
-	python3 ./benchmark.py
+	curl -X POST -d '{"msg":"hello"}' localhost/ogm/file/Healthy/Echo
 
 .PHONY: dist
 dist:
 	mkdir dist
 	tar -zcf dist/${APP_NAME}-${BUILD_VERSION}.tar.gz ./bin/${APP_NAME}
+
+.PHONY: docker
+docker:
+	docker build -t xtechcloud/${APP_NAME}:${BUILD_VERSION} .
+	docker rm -f ${APP_NAME}
+	docker run --restart=always --name=${APP_NAME} --net=host -v /data/${APP_NAME}:/ogm -e MSA_REGISTRY_ADDRESS='localhost:2379' -e MSA_CONFIG_DEFINE='{"source":"file","prefix":"/ogm/config","key":"${APP_NAME}.yaml"}' -d xtechcloud/${APP_NAME}:${BUILD_VERSION}
+	docker logs -f ${APP_NAME}
