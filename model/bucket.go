@@ -88,16 +88,6 @@ func (this *BucketDAO) Update(_bucket *Bucket) error {
 }
 
 func (this *BucketDAO) Delete(_uuid string) error {
-	var count int64
-	err := this.conn.DB.Model(&Bucket{}).Where("uuid = ?", _uuid).Count(&count).Error
-	if nil != err {
-		return err
-	}
-
-	if 0 == count {
-		return ErrBucketNotFound
-	}
-
 	return this.conn.DB.Where("uuid = ?", _uuid).Delete(&Bucket{}).Error
 }
 

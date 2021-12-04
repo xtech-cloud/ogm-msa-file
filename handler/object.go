@@ -234,6 +234,19 @@ func (this *Object) Remove(_ctx context.Context, _req *proto.ObjectRemoveRequest
 	logger.Infof("Received Object.Remove, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
+	if "" == _req.Uuid {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "uuid is required"
+		return nil
+	}
+
+	dao := model.NewObjectDAO(nil)
+    err := dao.Delete(_req.Uuid)
+    if nil != err {
+        _rsp.Status.Code = -1
+        _rsp.Status.Message = err.Error()
+        return nil
+    }
     _rsp.Uuid = _req.Uuid
 	return nil
 }

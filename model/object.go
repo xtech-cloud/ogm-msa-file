@@ -90,18 +90,8 @@ func (this *ObjectDAO) Update(_object *Object) error {
 	return this.conn.DB.Select("filepath", "url", "size", "md5").Updates(_object).Error
 }
 
-func (this *ObjectDAO) Delete(_filepath string) error {
-	var count int64
-	err := this.conn.DB.Model(&Object{}).Where("filepath = ?", _filepath).Count(&count).Error
-	if nil != err {
-		return err
-	}
-
-	if 0 == count {
-		return ErrObjectNotFound
-	}
-
-	return this.conn.DB.Where("filepath = ?", _filepath).Delete(&Object{}).Error
+func (this *ObjectDAO) Delete(_uuid string) error {
+	return this.conn.DB.Where("uuid = ?", _uuid).Delete(&Object{}).Error
 }
 
 func (this *ObjectDAO) List(_offset int64, _count int64, _bucket string) (_total int64, _object []*Object, _err error) {

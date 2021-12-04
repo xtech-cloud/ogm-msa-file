@@ -229,8 +229,8 @@ func (this *Bucket) Remove(_ctx context.Context, _req *proto.BucketRemoveRequest
 
 	dao := model.NewBucketDAO(nil)
 	err := dao.Delete(_req.Uuid)
-	if errors.Is(err, model.ErrBucketNotFound) {
-		_rsp.Status.Code = 2
+	if nil != err {
+		_rsp.Status.Code = -1
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
