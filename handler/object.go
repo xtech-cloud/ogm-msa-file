@@ -49,7 +49,7 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 		return nil
 	}
 
-	accessToken, err := engine.Prepare(bucket.Engine, bucket.Address, bucket.Scope, _req.Uname, bucket.AccessKey, bucket.AccessSecret)
+	accessToken, err := engine.Prepare(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, _req.Uname, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		_rsp.Status.Code = 9
 		_rsp.Status.Message = err.Error()

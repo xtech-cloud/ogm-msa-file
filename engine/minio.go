@@ -13,7 +13,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/signer"
 )
 
-func prepareMinio(_address string, _scope string, _uname string, _accessKey string, _accessSecret string) (string, error) {
+func prepareMinio(_address string, _url string, _scope string, _uname string, _accessKey string, _accessSecret string) (string, error) {
 	useSSL := false
 	minioClient, err := minio.New(_address, &minio.Options{
 		Creds:  credentials.NewStaticV4(_accessKey, _accessSecret, ""),
@@ -42,8 +42,25 @@ func prepareMinio(_address string, _scope string, _uname string, _accessKey stri
 		return "", err
 	}
 
-	token := fmt.Sprintf("%s %s", _accessKey, _accessSecret)
-	return token, nil
+	// 方式一：使MINIO SDK
+	//token := fmt.Sprintf("%s %s", _accessKey, _accessSecret)
+
+	// 方式二： 使用HTTP PUT
+	// 签名不需要使用minio.Client，使用minio.Client将在签名前访问minio服务，
+	// 如果minio地址在外网不可访问时，生成的链接外网可不可用，
+	// 直接使用签名函数签名，但不保证文件有效
+	queryUrl := make(url.Values)
+	queryUrl.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", _uname))
+	targetURL := fmt.Sprintf("%s/%s/%s?%s", _url, _scope, s3utils.EncodePath(_uname), s3utils.QueryEncode(queryUrl))
+	req, err := http.NewRequestWithContext(context.TODO(), "PUT", targetURL, nil)
+	if err != nil {
+		return "", err
+	}
+	// 1day
+	expiry := 60 * 60 * 24
+	// TODO us-east-1 为默认的location，需要实现可配置
+	req = signer.PreSignV4(*req, _accessKey, _accessSecret, "", "us-east-1", int64(expiry))
+	return req.URL.String(), nil
 }
 
 func flushMinio(_address string, _scope string, _uname string, _accessKey string, _accessSecret string) (int64, error) {
@@ -65,27 +82,27 @@ func flushMinio(_address string, _scope string, _uname string, _accessKey string
 }
 
 func publishMinio(_address string, _url string, _scope string, _uname string, _filename string, _accessKey string, _accessSecret string) (string, error) {
-    /*
-	useSSL := false
-	minioClient, err := minio.New(_address, &minio.Options{
-		Creds:  credentials.NewStaticV4(_accessKey, _accessSecret, ""),
-		Secure: useSSL,
-	})
-	if err != nil {
-		return "", err
-	}
+	/*
+		useSSL := false
+		minioClient, err := minio.New(_address, &minio.Options{
+			Creds:  credentials.NewStaticV4(_accessKey, _accessSecret, ""),
+			Secure: useSSL,
+		})
+		if err != nil {
+			return "", err
+		}
 
-	//TODO public是公有的返回公开链接，私有返回一个带有效期的链接
-	//presignedURL, err := minioClient.PresignedGetObject(context.Background(), _scope, _uname, time.Second*24*60*60*7, nil)
-	//if err != nil {
-	//	return "", err
-	//}
-	//return presignedURL.String(), nil
-    */
+		//TODO public是公有的返回公开链接，私有返回一个带有效期的链接
+		//presignedURL, err := minioClient.PresignedGetObject(context.Background(), _scope, _uname, time.Second*24*60*60*7, nil)
+		//if err != nil {
+		//	return "", err
+		//}
+		//return presignedURL.String(), nil
+	*/
 	queryUrl := make(url.Values)
 	queryUrl.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", _filename))
 	targetURL := fmt.Sprintf("%s/%s/%s?%s", _url, _scope, s3utils.EncodePath(_uname), s3utils.QueryEncode(queryUrl))
-    return targetURL, nil
+	return targetURL, nil
 }
 
 func previewMinio(_address string, _url string, _scope string, _uname string, _filename string, _expiry uint64, _accessKey string, _accessSecret string) (string, error) {
@@ -110,9 +127,9 @@ func previewMinio(_address string, _url string, _scope string, _uname string, _f
 		return presignedURL.String(), nil
 	*/
 
-    // 签名不需要使用minio.Client，使用minio.Client将在签名前访问minio服务，
-    // 如果minio地址在外网不可访问时，生成的链接外网可不可用，
-    // 直接使用签名函数签名，但不保证文件有效
+	// 签名不需要使用minio.Client，使用minio.Client将在签名前访问minio服务，
+	// 如果minio地址在外网不可访问时，生成的链接外网可不可用，
+	// 直接使用签名函数签名，但不保证文件有效
 	queryUrl := make(url.Values)
 	queryUrl.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", _filename))
 	targetURL := fmt.Sprintf("%s/%s/%s?%s", _url, _scope, s3utils.EncodePath(_uname), s3utils.QueryEncode(queryUrl))
@@ -120,7 +137,7 @@ func previewMinio(_address string, _url string, _scope string, _uname string, _f
 	if err != nil {
 		return "", err
 	}
-    // TODO us-east-1 为默认的location，需要实现可配置
+	// TODO us-east-1 为默认的location，需要实现可配置
 	req = signer.PreSignV4(*req, _accessKey, _accessSecret, "", "us-east-1", int64(_expiry))
 	return req.URL.String(), nil
 }
