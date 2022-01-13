@@ -9,6 +9,7 @@ type Object struct {
 	UUID      string `gorm:"column:uuid;type:char(32);not null;unique;primaryKey"`
 	Bucket    string `gorm:"column:bucket;type:char(32);not null"`
 	Filepath  string `gorm:"column:filepath;type:varchar(256);not null"`
+	UName     string `gorm:"column:uname;type:varchar(1024)"`
 	URL       string `gorm:"column:url;type:varchar(1024)"`
 	MD5       string `gorm:"column:md5;type:char(32)"`
 	Size      uint64 `gorm:"column:size"`
@@ -31,6 +32,7 @@ type ObjectQuery struct {
 	Bucket   string
 	Filepath string
 	MD5      string
+	Uname    string
 }
 
 func NewObjectDAO(_conn *Conn) *ObjectDAO {
@@ -55,9 +57,9 @@ func (this *ObjectDAO) CountOfBucket(_bucket string) (int64, error) {
 	return count, err
 }
 
-func (this *ObjectDAO) CountOfMD5(_bucket string, _md5 string) (int64, error) {
+func (this *ObjectDAO) CountOfUname(_bucket string, _uname string) (int64, error) {
 	var count int64
-	err := this.conn.DB.Model(&Object{}).Where("bucket = ? AND md5 = ?", _bucket, _md5).Count(&count).Error
+	err := this.conn.DB.Model(&Object{}).Where("bucket = ? AND uname = ?", _bucket, _uname).Count(&count).Error
 	return count, err
 }
 
@@ -87,7 +89,7 @@ func (this *ObjectDAO) Update(_object *Object) error {
 	}
 
 	// 使用select选定更新字段，零值也会被更新
-	return this.conn.DB.Select("filepath", "url", "size", "md5").Updates(_object).Error
+	return this.conn.DB.Select("filepath", "url", "size", "md5", "uname").Updates(_object).Error
 }
 
 func (this *ObjectDAO) Delete(_uuid string) error {
@@ -122,7 +124,7 @@ func (this *ObjectDAO) Search(_offset int64, _count int64, _bucket string, _pref
 	}
 	filepath := ""
 	if "" != _prefix {
-		filepath = filepath + _prefix 
+		filepath = filepath + _prefix
 	}
 	if "" != _name {
 		filepath = filepath + "%" + _name + "%"
@@ -149,6 +151,10 @@ func (this *ObjectDAO) QueryOne(_query *ObjectQuery) (*Object, error) {
 	}
 	if "" != _query.MD5 {
 		db = db.Where("md5 = ?", _query.MD5)
+		hasWhere = true
+	}
+	if "" != _query.Uname {
+		db = db.Where("uname= ?", _query.Uname)
 		hasWhere = true
 	}
 	if !hasWhere {

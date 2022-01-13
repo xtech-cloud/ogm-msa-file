@@ -13,7 +13,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/signer"
 )
 
-func prepareMinio(_address string, _url string, _scope string, _uname string, _accessKey string, _accessSecret string) (string, error) {
+func prepareMinio(_address string, _url string, _scope string, _uname string, _accessKey string, _accessSecret string, _expiry int64) (string, error) {
 	useSSL := false
 	minioClient, err := minio.New(_address, &minio.Options{
 		Creds:  credentials.NewStaticV4(_accessKey, _accessSecret, ""),
@@ -25,7 +25,7 @@ func prepareMinio(_address string, _url string, _scope string, _uname string, _a
 
 	ctx := context.TODO()
 	exists, errBucketExists := minioClient.BucketExists(ctx, _scope)
-	if errBucketExists != nil && exists {
+	if errBucketExists != nil {
 		return "", errBucketExists
 	}
 
@@ -57,9 +57,12 @@ func prepareMinio(_address string, _url string, _scope string, _uname string, _a
 		return "", err
 	}
 	// 1day
-	expiry := 60 * 60 * 24
+	expiry := int64(60 * 60 * 24)
+	if _expiry > 0 {
+		expiry = _expiry
+	}
 	// TODO us-east-1 为默认的location，需要实现可配置
-	req = signer.PreSignV4(*req, _accessKey, _accessSecret, "", "us-east-1", int64(expiry))
+	req = signer.PreSignV4(*req, _accessKey, _accessSecret, "", "us-east-1", expiry)
 	return req.URL.String(), nil
 }
 
@@ -105,7 +108,7 @@ func publishMinio(_address string, _url string, _scope string, _uname string, _f
 	return targetURL, nil
 }
 
-func previewMinio(_address string, _url string, _scope string, _uname string, _filename string, _expiry uint64, _accessKey string, _accessSecret string) (string, error) {
+func previewMinio(_address string, _url string, _scope string, _uname string, _filename string, _expiry int64, _accessKey string, _accessSecret string) (string, error) {
 	/*
 		useSSL := false
 		minioClient, err := minio.New(_address, &minio.Options{
@@ -137,7 +140,12 @@ func previewMinio(_address string, _url string, _scope string, _uname string, _f
 	if err != nil {
 		return "", err
 	}
+	// 1 hour
+	expiry := int64(60 * 60)
+	if _expiry > 0 {
+		expiry = _expiry
+	}
 	// TODO us-east-1 为默认的location，需要实现可配置
-	req = signer.PreSignV4(*req, _accessKey, _accessSecret, "", "us-east-1", int64(_expiry))
+	req = signer.PreSignV4(*req, _accessKey, _accessSecret, "", "us-east-1", expiry)
 	return req.URL.String(), nil
 }

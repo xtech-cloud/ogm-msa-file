@@ -59,7 +59,7 @@ func publishQiniu(_address string, _url string, _scope string, _uname string, _f
 	return url, nil
 }
 
-func previewQiniu(_address string, _url string, _scope string, _uname string, _filename string, _expiry uint64, _accessKey string, _accessSecret string) (string, error) {
+func previewQiniu(_address string, _url string, _scope string, _uname string, _filename string, _expiry int64, _accessKey string, _accessSecret string) (string, error) {
 	//TODO public是公有的返回公开链接，私有返回一个带有效期的链接
 	mac := qbox.NewMac(_accessKey, _accessSecret)
 	deadline := time.Now().Add(time.Second * time.Duration(_expiry)).Unix()

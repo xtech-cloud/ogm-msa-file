@@ -49,7 +49,9 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 		return nil
 	}
 
-	accessToken, err := engine.Prepare(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, _req.Uname, bucket.AccessKey, bucket.AccessSecret)
+	logger.Infof("bucket is %v", bucket)
+
+	accessToken, err := engine.Prepare(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, _req.Uname, bucket.AccessKey, bucket.AccessSecret, _req.Expiry)
 	if nil != err {
 		_rsp.Status.Code = 9
 		_rsp.Status.Message = err.Error()
@@ -84,6 +86,12 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		return nil
 	}
 
+	if "" == _req.Md5 {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "md5 is required"
+		return nil
+	}
+
 	if "" == _req.Path {
 		_rsp.Status.Code = 1
 		_rsp.Status.Message = "path is required"
@@ -115,7 +123,8 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		UUID:     model.ToUUID(_req.Bucket + _req.Path),
 		Filepath: _req.Path,
 		Bucket:   _req.Bucket,
-		MD5:      _req.Uname,
+		MD5:      _req.Md5,
+		UName:    _req.Uname,
 		Size:     uint64(fsize),
 	}
 
@@ -129,7 +138,7 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		return err
 	}
 
-	count, err := daoObject.CountOfMD5(_req.Bucket, object.MD5)
+	count, err := daoObject.CountOfUname(_req.Bucket, object.UName)
 	if nil != err {
 		return err
 	}
@@ -144,7 +153,7 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		}
 	}
 
-    _rsp.Uuid = object.UUID
+	_rsp.Uuid = object.UUID
 	return nil
 }
 
@@ -241,13 +250,13 @@ func (this *Object) Remove(_ctx context.Context, _req *proto.ObjectRemoveRequest
 	}
 
 	dao := model.NewObjectDAO(nil)
-    err := dao.Delete(_req.Uuid)
-    if nil != err {
-        _rsp.Status.Code = -1
-        _rsp.Status.Message = err.Error()
-        return nil
-    }
-    _rsp.Uuid = _req.Uuid
+	err := dao.Delete(_req.Uuid)
+	if nil != err {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
+	}
+	_rsp.Uuid = _req.Uuid
 	return nil
 }
 
@@ -288,6 +297,7 @@ func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _r
 			Uuid:     object.UUID,
 			Filepath: object.Filepath,
 			Md5:      object.MD5,
+			Uname:    object.UName,
 			Size:     object.Size,
 			Url:      object.URL,
 		}
@@ -330,6 +340,7 @@ func (this *Object) Search(_ctx context.Context, _req *proto.ObjectSearchRequest
 			Uuid:     object.UUID,
 			Filepath: object.Filepath,
 			Md5:      object.MD5,
+			Uname:    object.UName,
 			Size:     object.Size,
 			Url:      object.URL,
 		}
@@ -434,8 +445,7 @@ func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewReque
 	}
 
 	filename := filepath.Base(object.Filepath)
-	//有效期5分钟
-	url, err := engine.Preview(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, object.MD5, filename, 300, bucket.AccessKey, bucket.AccessSecret)
+	url, err := engine.Preview(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, object.MD5, filename, _req.Expiry, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		_rsp.Status.Code = -1
 		_rsp.Status.Message = err.Error()
@@ -493,6 +503,6 @@ func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractReque
 		return nil
 	}
 
-    _rsp.Uuid = _req.Uuid
+	_rsp.Uuid = _req.Uuid
 	return nil
 }
