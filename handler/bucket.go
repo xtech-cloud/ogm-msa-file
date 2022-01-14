@@ -2,9 +2,15 @@ package handler
 
 import (
 	"context"
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"math"
 	"ogm-file/config"
+	"ogm-file/engine"
 	"ogm-file/model"
+	"strings"
 
 	"github.com/asim/go-micro/v3/logger"
 	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
@@ -304,5 +310,151 @@ func (this *Bucket) Find(_ctx context.Context, _req *proto.BucketFindRequest, _r
 		AccessSecret: bucket.AccessSecret,
 		Url:          bucket.Url,
 	}
+	return nil
+}
+
+func (this *Bucket) GenerateManifest(_ctx context.Context, _req *proto.BucketGenerateManifestRequest, _rsp *proto.BucketGenerateManifestResponse) error {
+	logger.Infof("Received Bucket.GenerateManifest, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
+	if "" == _req.Uuid {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "uuid is required"
+		return nil
+	}
+
+	if nil == _req.Field || len(_req.Field) == 0 {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "field is required"
+		return nil
+	}
+
+	if "json" != _req.Format {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "format only support json"
+		return nil
+	}
+
+	dao := model.NewObjectDAO(nil)
+
+	_, objects, err := dao.List(0, math.MaxInt64, _req.Uuid)
+	if nil != err {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
+	}
+
+	hasFilepath := false
+	hasUname := false
+	hasUrl := false
+	hasMd5 := false
+	hasSize := false
+	for _, e := range _req.Field {
+		if e == "filepath" {
+			hasFilepath = true
+		} else if e == "uname" {
+			hasUname = true
+		} else if e == "url" {
+			hasUrl = true
+		} else if e == "md5" {
+			hasMd5 = true
+		} else if e == "size" {
+			hasSize = true
+		}
+	}
+
+	file_exclude := make(map[string]string)
+	if nil != _req.Exclude {
+		for _, e := range _req.Exclude {
+			if strings.Contains(e, "*") {
+			} else {
+				file_exclude[e] = ""
+			}
+		}
+	}
+
+	// 过滤字段
+	content := make([]map[string]interface{}, 0)
+	for _, e := range objects {
+		if _, ok := file_exclude[e.Filepath]; ok {
+			continue
+		}
+		obj := make(map[string]interface{})
+		if hasFilepath {
+			obj["filepath"] = e.Filepath
+		}
+		if hasUname {
+			obj["uname"] = e.UName
+		}
+		if hasUrl {
+			obj["url"] = e.URL
+		}
+		if hasMd5 {
+			obj["md5"] = e.MD5
+		}
+		if hasSize {
+			obj["size"] = e.Size
+		}
+		content = append(content, obj)
+	}
+
+	// 生成json
+	data, err := json.Marshal(content)
+	if nil != err {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
+	}
+
+	result := ""
+	if "" != _req.Template {
+		result = strings.ReplaceAll(_req.Template, "$content$", string(data))
+	} else {
+		result = string(data)
+	}
+
+	if "" != _req.SaveAs {
+		daoBucket := model.NewBucketDAO(nil)
+		bucket, err := daoBucket.Get(_req.Uuid)
+		if nil != err {
+			_rsp.Status.Code = -1
+			_rsp.Status.Message = err.Error()
+			return nil
+		}
+		size := int64(len([]byte(result)))
+		length := int64(len(result))
+		md5sum := md5.New()
+		md5sum.Write([]byte(result))
+		md5str := hex.EncodeToString(md5sum.Sum(nil))
+		//保存进存储引擎
+		reader := strings.NewReader(result)
+		err = engine.Save(bucket.Engine, bucket.Address, bucket.Scope, _req.SaveAs, reader, length, bucket.AccessKey, bucket.AccessSecret)
+		if nil != err {
+			_rsp.Status.Code = 9
+			_rsp.Status.Message = err.Error()
+			return nil
+		}
+
+		// 写入数据库
+		object := &model.Object{
+			UUID:     model.ToUUID(_req.Uuid + _req.SaveAs),
+			Filepath: _req.SaveAs,
+			Bucket:   _req.Uuid,
+			MD5:      strings.ToUpper(md5str),
+			UName:    _req.SaveAs,
+			Size:     uint64(size),
+		}
+
+		err = dao.Upsert(object)
+		if nil != err {
+			_rsp.Status.Code = 9
+			_rsp.Status.Message = err.Error()
+			return nil
+		}
+		_rsp.Result = ""
+	} else {
+		_rsp.Result = result
+	}
+
 	return nil
 }

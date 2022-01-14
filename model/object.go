@@ -3,6 +3,8 @@ package model
 import (
 	"errors"
 	"time"
+
+	"gorm.io/gorm/clause"
 )
 
 type Object struct {
@@ -65,7 +67,7 @@ func (this *ObjectDAO) CountOfUname(_bucket string, _uname string) (int64, error
 
 func (this *ObjectDAO) Insert(_object *Object) error {
 	var count int64
-	err := this.conn.DB.Model(&Object{}).Where("filepath= ?", _object.Filepath).Count(&count).Error
+	err := this.conn.DB.Model(&Object{}).Where("uuid = ?", _object.UUID).Count(&count).Error
 	if nil != err {
 		return err
 	}
@@ -75,6 +77,15 @@ func (this *ObjectDAO) Insert(_object *Object) error {
 	}
 
 	return this.conn.DB.Create(_object).Error
+}
+
+func (this *ObjectDAO) Upsert(_object *Object) error {
+	// uuid冲突时，更新所有列
+	this.conn.DB.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "uuid"}},
+		UpdateAll: true,
+	}).Create(_object)
+	return nil
 }
 
 func (this *ObjectDAO) Update(_object *Object) error {

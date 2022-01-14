@@ -1,6 +1,7 @@
 package engine
 
 import (
+    "io"
 	"errors"
 	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
 )
@@ -45,4 +46,13 @@ func Preview(_engine int, _address string, _url string, _scope string, _uname st
 		return previewMinio(_address, _url, _scope, _uname, _filename, _expiry, _accessKey, _accessSecret)
 	}
 	return "", errors.New("unsupported engine")
+}
+
+// 保存内容为一个对象
+func Save(_engine int, _address string, _scope string, _uname string, _reader io.Reader, _size int64, _accessKey string, _accessSecret string) error {
+	switch proto.Engine(_engine) {
+	case proto.Engine_ENGINE_MINIO:
+		return saveMinio(_address, _scope, _uname, _reader, _size, _accessKey, _accessSecret)
+	}
+	return errors.New("unsupported engine")
 }

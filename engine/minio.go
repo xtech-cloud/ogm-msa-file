@@ -1,6 +1,7 @@
 package engine
 
 import (
+    "io"
 	"context"
 	"errors"
 	"fmt"
@@ -148,4 +149,22 @@ func previewMinio(_address string, _url string, _scope string, _uname string, _f
 	// TODO us-east-1 为默认的location，需要实现可配置
 	req = signer.PreSignV4(*req, _accessKey, _accessSecret, "", "us-east-1", expiry)
 	return req.URL.String(), nil
+}
+
+func saveMinio(_address string, _scope string, _uname string, _reader io.Reader, _size int64, _accessKey string, _accessSecret string) error {
+	useSSL := false
+	minioClient, err := minio.New(_address, &minio.Options{
+		Creds:  credentials.NewStaticV4(_accessKey, _accessSecret, ""),
+		Secure: useSSL,
+	})
+	if err != nil {
+		return err
+	}
+
+	ctx := context.TODO()
+    _, err = minioClient.PutObject(ctx, _scope, _uname, _reader, _size, minio.PutObjectOptions{ContentType:"application/octet-stream"})
+	if err != nil {
+		return err
+	}
+    return nil
 }
