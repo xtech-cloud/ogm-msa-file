@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"math"
 	"ogm-file/config"
 	"ogm-file/engine"
 	"ogm-file/model"
@@ -335,9 +334,19 @@ func (this *Bucket) GenerateManifest(_ctx context.Context, _req *proto.BucketGen
 		return nil
 	}
 
+	// 构建where查询语句列表
+	like_sql := make([]string, len(_req.Include))
+	for i, e := range _req.Include {
+		like_sql[i] = strings.ReplaceAll(e, "*", "%")
+	}
+	notlike_sql := make([]string, len(_req.Exclude))
+	for i, e := range _req.Exclude {
+		notlike_sql[i] = strings.ReplaceAll(e, "*", "%")
+	}
+
 	dao := model.NewObjectDAO(nil)
 
-	_, objects, err := dao.List(0, math.MaxInt64, _req.Uuid)
+	objects, err := dao.WhereFilepath(_req.Uuid, like_sql, notlike_sql)
 	if nil != err {
 		_rsp.Status.Code = -1
 		_rsp.Status.Message = err.Error()
@@ -363,39 +372,25 @@ func (this *Bucket) GenerateManifest(_ctx context.Context, _req *proto.BucketGen
 		}
 	}
 
-	file_exclude := make(map[string]string)
-	if nil != _req.Exclude {
-		for _, e := range _req.Exclude {
-			if strings.Contains(e, "*") {
-			} else {
-				file_exclude[e] = ""
-			}
-		}
-	}
-
 	// 过滤字段
-	content := make([]map[string]interface{}, 0)
-	for _, e := range objects {
-		if _, ok := file_exclude[e.Filepath]; ok {
-			continue
-		}
-		obj := make(map[string]interface{})
+	content := make([]map[string]interface{}, len(objects))
+	for i, e := range objects {
+		content[i] = make(map[string]interface{})
 		if hasFilepath {
-			obj["filepath"] = e.Filepath
+			content[i]["filepath"] = e.Filepath
 		}
 		if hasUname {
-			obj["uname"] = e.UName
+			content[i]["uname"] = e.UName
 		}
 		if hasUrl {
-			obj["url"] = e.URL
+			content[i]["url"] = e.URL
 		}
 		if hasMd5 {
-			obj["md5"] = e.MD5
+			content[i]["md5"] = e.MD5
 		}
 		if hasSize {
-			obj["size"] = e.Size
+			content[i]["size"] = e.Size
 		}
-		content = append(content, obj)
 	}
 
 	// 生成json

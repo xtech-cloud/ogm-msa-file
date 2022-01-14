@@ -149,6 +149,26 @@ func (this *ObjectDAO) Search(_offset int64, _count int64, _bucket string, _pref
 	return
 }
 
+func (this *ObjectDAO) WhereFilepath(_bucket string, _like []string, _notlike []string) (_object []Object, _err error) {
+	db_like := this.conn.DB.Model(&Object{})
+	if nil != _like {
+		for _, like := range _like {
+			db_like = db_like.Or("filepath LIKE ?", like)
+		}
+	}
+	db_notlike := this.conn.DB.Model(&Object{})
+	if nil != _notlike {
+		for _, notlike := range _notlike {
+			db_notlike = db_notlike.Not("filepath LIKE ?", notlike)
+		}
+	}
+	db := this.conn.DB.Model(&Object{})
+	var object []Object
+	db = db.Where("bucket = ?", _bucket).Where(db_like).Where(db_notlike).Order("created_at desc").Find(&object)
+	err := db.Statement.Error
+	return object, err
+}
+
 func (this *ObjectDAO) QueryOne(_query *ObjectQuery) (*Object, error) {
 	db := this.conn.DB.Model(&Object{})
 	hasWhere := false
