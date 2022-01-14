@@ -2,6 +2,7 @@ package model
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"gorm.io/gorm/clause"
@@ -135,10 +136,13 @@ func (this *ObjectDAO) Search(_offset int64, _count int64, _bucket string, _pref
 	}
 	filepath := ""
 	if "" != _prefix {
-		filepath = filepath + _prefix
+		filepath = _prefix + "%"
 	}
 	if "" != _name {
-		filepath = filepath + "%" + _name + "%"
+		if !strings.HasSuffix(filepath, "%") {
+			filepath = filepath + "%"
+		}
+		filepath = filepath + _name + "%"
 	}
 	db = db.Where("filepath LIKE ?", filepath)
 	_err = db.Count(&_total).Error
