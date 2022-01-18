@@ -561,3 +561,41 @@ func (this *Object) ConvertFromBase64(_ctx context.Context, _req *proto.ObjectCo
 	_rsp.Failure = failure
 	return nil
 }
+
+func (this *Object) ConvertFromUrl(_ctx context.Context, _req *proto.ObjectConvertFromUrlRequest, _rsp *proto.ObjectConvertFromUrlResponse) error {
+	logger.Infof("Received Object.ConvertFromUrlRequest, req is bucket:%v source:%v", _req.Bucket, len(_req.Source))
+	_rsp.Status = &proto.Status{}
+
+	daoBucket := model.NewBucketDAO(nil)
+	bucket, err := daoBucket.Get(_req.Bucket)
+	if nil != err {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
+	}
+
+	dao := model.NewObjectDAO(nil)
+	failure := make([]string, 0)
+	for _, e := range _req.Source {
+		// 写入数据库
+		object := &model.Object{
+			UUID:     model.ToUUID(bucket.UUID + e.Filepath),
+			Filepath: e.Filepath,
+			Bucket:   _req.Bucket,
+			MD5:      e.Md5,
+			UName:    e.Uname,
+			URL:      e.Content,
+			Size:     uint64(e.Size),
+		}
+		err = dao.Upsert(object)
+		if nil != err {
+			_rsp.Status.Code = 9
+			_rsp.Status.Message = err.Error()
+			failure = append(failure, e.Filepath)
+			continue
+		}
+	}
+
+	_rsp.Failure = failure
+	return nil
+}
