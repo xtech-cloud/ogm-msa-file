@@ -453,3 +453,10 @@ func (this *Bucket) GenerateManifest(_ctx context.Context, _req *proto.BucketGen
 
 	return nil
 }
+
+func (this *Bucket) Clean(_ctx context.Context, _req *proto.BucketCleanRequest, _rsp *proto.UuidResponse) error {
+	logger.Infof("Received Bucket.Clean, req is %v", _req)
+	_rsp.Status = &proto.Status{}
+
+    return nil
+}

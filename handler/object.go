@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"ogm-file/engine"
@@ -504,5 +505,59 @@ func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractReque
 	}
 
 	_rsp.Uuid = _req.Uuid
+	return nil
+}
+
+func (this *Object) ConvertFromBase64(_ctx context.Context, _req *proto.ObjectConvertFromBase64Request, _rsp *proto.ObjectConvertFromBase64Response) error {
+	logger.Infof("Received Object.ConvertFromBase64Request, req is bucket:%v source:%v", _req.Bucket, len(_req.Source))
+	_rsp.Status = &proto.Status{}
+
+	daoBucket := model.NewBucketDAO(nil)
+	bucket, err := daoBucket.Get(_req.Bucket)
+	if nil != err {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
+	}
+
+	dao := model.NewObjectDAO(nil)
+	failure := make([]string, 0)
+	for _, e := range _req.Source {
+		data, err := model.FromBase64(e.Content)
+		if nil != err {
+			failure = append(failure, e.Filepath)
+			continue
+		}
+
+		size := int64(len(data))
+		//保存进存储引擎
+		reader := bytes.NewReader(data)
+		err = engine.Save(bucket.Engine, bucket.Address, bucket.Scope, e.Uname, reader, size, bucket.AccessKey, bucket.AccessSecret)
+		if nil != err {
+			_rsp.Status.Code = 9
+			_rsp.Status.Message = err.Error()
+			failure = append(failure, e.Filepath)
+			continue
+		}
+
+		// 写入数据库
+		object := &model.Object{
+			UUID:     model.ToUUID(_req.Bucket + e.Filepath),
+			Filepath: e.Filepath,
+			Bucket:   _req.Bucket,
+			MD5:      model.Md5FromBytes(data),
+			UName:    e.Uname,
+			Size:     uint64(size),
+		}
+		err = dao.Upsert(object)
+		if nil != err {
+			_rsp.Status.Code = 9
+			_rsp.Status.Message = err.Error()
+			failure = append(failure, e.Filepath)
+			continue
+		}
+	}
+
+	_rsp.Failure = failure
 	return nil
 }
