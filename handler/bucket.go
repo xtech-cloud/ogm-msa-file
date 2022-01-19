@@ -45,6 +45,11 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		uuid = model.ToUUID(_req.Name)
 	}
 
+	mode := "hash"
+	if _req.Mode == "path" {
+		mode = "path"
+	}
+
 	bucket := &model.Bucket{
 		UUID:         uuid,
 		Name:         _req.Name,
@@ -56,6 +61,7 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 		AccessKey:    _req.AccessKey,
 		AccessSecret: _req.AccessSecret,
 		Url:          _req.Url,
+		Mode:         mode,
 	}
 
 	dao := model.NewBucketDAO(nil)
@@ -111,6 +117,7 @@ func (this *Bucket) List(_ctx context.Context, _req *proto.BucketListRequest, _r
 			AccessKey:    bucket.AccessKey,
 			AccessSecret: bucket.AccessSecret,
 			Url:          bucket.Url,
+			Mode:         bucket.Mode,
 		}
 	}
 	return nil
@@ -157,6 +164,7 @@ func (this *Bucket) Search(_ctx context.Context, _req *proto.BucketSearchRequest
 			AccessKey:    bucket.AccessKey,
 			AccessSecret: bucket.AccessSecret,
 			Url:          bucket.Url,
+			Mode:         bucket.Mode,
 		}
 	}
 	return nil
@@ -272,6 +280,7 @@ func (this *Bucket) Get(_ctx context.Context, _req *proto.BucketGetRequest, _rsp
 		AccessKey:    bucket.AccessKey,
 		AccessSecret: bucket.AccessSecret,
 		Url:          bucket.Url,
+		Mode:         bucket.Mode,
 	}
 	return nil
 }
@@ -308,6 +317,7 @@ func (this *Bucket) Find(_ctx context.Context, _req *proto.BucketFindRequest, _r
 		AccessKey:    bucket.AccessKey,
 		AccessSecret: bucket.AccessSecret,
 		Url:          bucket.Url,
+		Mode:         bucket.Mode,
 	}
 	return nil
 }
@@ -346,27 +356,24 @@ func (this *Bucket) GenerateManifest(_ctx context.Context, _req *proto.BucketGen
 
 	dao := model.NewObjectDAO(nil)
 
-	objects, err := dao.WhereFilepath(_req.Uuid, like_sql, notlike_sql)
+	objects, err := dao.WherePath(_req.Uuid, like_sql, notlike_sql)
 	if nil != err {
 		_rsp.Status.Code = -1
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
 
-	hasFilepath := false
-	hasUname := false
+	hasPath := false
+	hasHash := false
 	hasUrl := false
-	hasMd5 := false
 	hasSize := false
 	for _, e := range _req.Field {
-		if e == "filepath" {
-			hasFilepath = true
-		} else if e == "uname" {
-			hasUname = true
+		if e == "path" {
+			hasPath = true
+		} else if e == "hash" {
+			hasHash = true
 		} else if e == "url" {
 			hasUrl = true
-		} else if e == "md5" {
-			hasMd5 = true
 		} else if e == "size" {
 			hasSize = true
 		}
@@ -376,17 +383,14 @@ func (this *Bucket) GenerateManifest(_ctx context.Context, _req *proto.BucketGen
 	content := make([]map[string]interface{}, len(objects))
 	for i, e := range objects {
 		content[i] = make(map[string]interface{})
-		if hasFilepath {
-			content[i]["filepath"] = e.Filepath
+		if hasPath {
+			content[i]["path"] = e.Path
 		}
-		if hasUname {
-			content[i]["uname"] = e.UName
+		if hasHash {
+			content[i]["hash"] = e.Hash
 		}
 		if hasUrl {
 			content[i]["url"] = e.URL
-		}
-		if hasMd5 {
-			content[i]["md5"] = e.MD5
 		}
 		if hasSize {
 			content[i]["size"] = e.Size
@@ -432,12 +436,11 @@ func (this *Bucket) GenerateManifest(_ctx context.Context, _req *proto.BucketGen
 
 		// 写入数据库
 		object := &model.Object{
-			UUID:     model.ToUUID(_req.Uuid + _req.SaveAs),
-			Filepath: _req.SaveAs,
-			Bucket:   _req.Uuid,
-			MD5:      strings.ToUpper(md5str),
-			UName:    _req.SaveAs,
-			Size:     uint64(size),
+			UUID:   model.ToUUID(_req.Uuid + _req.SaveAs),
+			Path:   _req.SaveAs,
+			Bucket: _req.Uuid,
+			Hash:   strings.ToUpper(md5str),
+			Size:   uint64(size),
 		}
 
 		err = dao.Upsert(object)
@@ -458,5 +461,20 @@ func (this *Bucket) Clean(_ctx context.Context, _req *proto.BucketCleanRequest, 
 	logger.Infof("Received Bucket.Clean, req is %v", _req)
 	_rsp.Status = &proto.Status{}
 
-    return nil
+	if "" == _req.Uuid {
+		_rsp.Status.Code = 1
+		_rsp.Status.Message = "uuid is required"
+		return nil
+	}
+
+	dao := model.NewObjectDAO(nil)
+	err := dao.Clean(_req.Uuid)
+	if nil != err {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
+	}
+
+	_rsp.Uuid = _req.Uuid
+	return nil
 }

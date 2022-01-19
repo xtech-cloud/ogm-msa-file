@@ -24,12 +24,6 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 		return nil
 	}
 
-	if "" == _req.Uname {
-		_rsp.Status.Code = 1
-		_rsp.Status.Message = "uname is required"
-		return nil
-	}
-
 	if 0 == _req.Size {
 		_rsp.Status.Code = 1
 		_rsp.Status.Message = "size is required"
@@ -44,15 +38,37 @@ func (this *Object) Prepare(_ctx context.Context, _req *proto.ObjectPrepareReque
 		return nil
 	}
 
+	override := false
+	uname := ""
+	if bucket.Mode == "hash" {
+		if "" == _req.Hash {
+			_rsp.Status.Code = 1
+			_rsp.Status.Message = "hash is required"
+			return nil
+		}
+		override = false
+		uname = _req.Hash
+	} else if bucket.Mode == "path" {
+		if "" == _req.Path {
+			_rsp.Status.Code = 1
+			_rsp.Status.Message = "path is required"
+			return nil
+		}
+		override = _req.Override
+		uname = _req.Path
+	} else {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = "the mode of bucket is invalid"
+		return nil
+	}
+
 	if bucket.UsedSize+_req.Size > bucket.TotalSize {
 		_rsp.Status.Code = 3
 		_rsp.Status.Message = "out of capacity"
 		return nil
 	}
 
-	logger.Infof("bucket is %v", bucket)
-
-	accessToken, err := engine.Prepare(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, _req.Uname, bucket.AccessKey, bucket.AccessSecret, _req.Expiry)
+	accessToken, err := engine.Prepare(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, uname, bucket.AccessKey, bucket.AccessSecret, _req.Expiry, override)
 	if nil != err {
 		_rsp.Status.Code = 9
 		_rsp.Status.Message = err.Error()
@@ -81,15 +97,9 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 		return nil
 	}
 
-	if "" == _req.Uname {
+	if "" == _req.Hash {
 		_rsp.Status.Code = 1
-		_rsp.Status.Message = "uname is required"
-		return nil
-	}
-
-	if "" == _req.Md5 {
-		_rsp.Status.Code = 1
-		_rsp.Status.Message = "md5 is required"
+		_rsp.Status.Message = "hash is required"
 		return nil
 	}
 
@@ -113,45 +123,57 @@ func (this *Object) Flush(_ctx context.Context, _req *proto.ObjectFlushRequest, 
 
 	}
 
-	// 从存储引擎中获取文件的实际大小
-	fsize, err := engine.Flush(bucket.Engine, bucket.Address, bucket.Scope, _req.Uname, bucket.AccessKey, bucket.AccessSecret)
+	uname := ""
+	if bucket.Mode == "hash" {
+		uname = _req.Hash
+	} else if bucket.Mode == "path" {
+		uname = _req.Path
+	} else {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = "the mode of bucket is invalid"
+		return nil
+	}
+
+	fsize, err := engine.Flush(bucket.Engine, bucket.Address, bucket.Scope, uname, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
 
 	daoObject := model.NewObjectDAO(nil)
 	object := &model.Object{
-		UUID:     model.ToUUID(_req.Bucket + _req.Path),
-		Filepath: _req.Path,
-		Bucket:   _req.Bucket,
-		MD5:      _req.Md5,
-		UName:    _req.Uname,
-		Size:     uint64(fsize),
+		UUID:   model.ToUUID(_req.Bucket + _req.Path),
+		Path:   _req.Path,
+		Bucket: _req.Bucket,
+		Hash:   _req.Hash,
+		Size:   uint64(fsize),
 	}
 
-	err = daoObject.Insert(object)
+	err = daoObject.Upsert(object)
 	if errors.Is(err, model.ErrObjectExists) {
 		_rsp.Status.Code = 3
 		_rsp.Status.Message = err.Error()
 		return nil
 	}
 	if nil != err {
-		return err
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
 	}
 
-	count, err := daoObject.CountOfUname(_req.Bucket, object.UName)
+	sum, err := daoObject.SumOfBucket(_req.Bucket)
 	if nil != err {
-		return err
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
 	}
 
-	if 1 == count {
-		// 更新已用空间
-		bucket.UsedSize = bucket.UsedSize + uint64(fsize)
-		logger.Debugf("the used of size is %d", bucket.UsedSize)
-		err = daoBucket.Update(bucket)
-		if nil != err {
-			return err
-		}
+	// 更新已用空间
+	bucket.UsedSize = sum
+	err = daoBucket.Update(bucket)
+	if nil != err {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = err.Error()
+		return nil
 	}
 
 	_rsp.Uuid = object.UUID
@@ -202,11 +224,11 @@ func (this *Object) Get(_ctx context.Context, _req *proto.ObjectGetRequest, _rsp
 	}
 
 	_rsp.Entity = &proto.ObjectEntity{
-		Uuid:     object.UUID,
-		Filepath: object.Filepath,
-		Md5:      object.MD5,
-		Url:      object.URL,
-		Size:     object.Size,
+		Uuid: object.UUID,
+		Path: object.Path,
+		Hash: object.Hash,
+		Url:  object.URL,
+		Size: object.Size,
 	}
 	return nil
 }
@@ -217,8 +239,8 @@ func (this *Object) Find(_ctx context.Context, _req *proto.ObjectFindRequest, _r
 
 	dao := model.NewObjectDAO(nil)
 	object, err := dao.QueryOne(&model.ObjectQuery{
-		Bucket:   _req.Bucket,
-		Filepath: _req.Filepath,
+		Bucket: _req.Bucket,
+		Path:   _req.Path,
 	})
 	if nil != err {
 		if errors.Is(err, model.ErrObjectNotFound) {
@@ -231,11 +253,11 @@ func (this *Object) Find(_ctx context.Context, _req *proto.ObjectFindRequest, _r
 	}
 
 	_rsp.Entity = &proto.ObjectEntity{
-		Uuid:     object.UUID,
-		Filepath: object.Filepath,
-		Md5:      object.MD5,
-		Url:      object.URL,
-		Size:     object.Size,
+		Uuid: object.UUID,
+		Path: object.Path,
+		Hash: object.Hash,
+		Url:  object.URL,
+		Size: object.Size,
 	}
 	return nil
 }
@@ -295,12 +317,11 @@ func (this *Object) List(_ctx context.Context, _req *proto.ObjectListRequest, _r
 	_rsp.Entity = make([]*proto.ObjectEntity, len(objects))
 	for i, object := range objects {
 		_rsp.Entity[i] = &proto.ObjectEntity{
-			Uuid:     object.UUID,
-			Filepath: object.Filepath,
-			Md5:      object.MD5,
-			Uname:    object.UName,
-			Size:     object.Size,
-			Url:      object.URL,
+			Uuid: object.UUID,
+			Path: object.Path,
+			Hash: object.Hash,
+			Size: object.Size,
+			Url:  object.URL,
 		}
 	}
 	return nil
@@ -338,12 +359,11 @@ func (this *Object) Search(_ctx context.Context, _req *proto.ObjectSearchRequest
 	_rsp.Entity = make([]*proto.ObjectEntity, len(objects))
 	for i, object := range objects {
 		_rsp.Entity[i] = &proto.ObjectEntity{
-			Uuid:     object.UUID,
-			Filepath: object.Filepath,
-			Md5:      object.MD5,
-			Uname:    object.UName,
-			Size:     object.Size,
-			Url:      object.URL,
+			Uuid: object.UUID,
+			Path: object.Path,
+			Hash: object.Hash,
+			Size: object.Size,
+			Url:  object.URL,
 		}
 	}
 	return nil
@@ -383,9 +403,19 @@ func (this *Object) Publish(_ctx context.Context, _req *proto.ObjectPublishReque
 			return err
 		}
 	}
+	uname := ""
+	if bucket.Mode == "hash" {
+		uname = object.Hash
+	} else if bucket.Mode == "path" {
+		uname = object.Path
+	} else {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = "the mode of bucket is invalid"
+		return nil
+	}
 
-	filename := filepath.Base(object.Filepath)
-	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, object.UName, filename, bucket.AccessKey, bucket.AccessSecret)
+	filename := filepath.Base(object.Path)
+	url, err := engine.Publish(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, uname, filename, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
@@ -445,8 +475,18 @@ func (this *Object) Preview(_ctx context.Context, _req *proto.ObjectPreviewReque
 		}
 	}
 
-	filename := filepath.Base(object.Filepath)
-	url, err := engine.Preview(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, object.UName, filename, _req.Expiry, bucket.AccessKey, bucket.AccessSecret)
+	uname := ""
+	if bucket.Mode == "hash" {
+		uname = object.Hash
+	} else if bucket.Mode == "path" {
+		uname = object.Path
+	} else {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = "the mode of bucket is invalid"
+		return nil
+	}
+	filename := filepath.Base(object.Path)
+	url, err := engine.Preview(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, uname, filename, _req.Expiry, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		_rsp.Status.Code = -1
 		_rsp.Status.Message = err.Error()
@@ -491,9 +531,20 @@ func (this *Object) Retract(_ctx context.Context, _req *proto.ObjectRetractReque
 		}
 	}
 
+	uname := ""
+	if bucket.Mode == "hash" {
+		uname = object.Hash
+	} else if bucket.Mode == "path" {
+		uname = object.Path
+	} else {
+		_rsp.Status.Code = -1
+		_rsp.Status.Message = "the mode of bucket is invalid"
+		return nil
+	}
+
 	// 有效期60秒
-	filename := filepath.Base(object.Filepath)
-	_, err = engine.Preview(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, object.UName, filename, 60, bucket.AccessKey, bucket.AccessSecret)
+	filename := filepath.Base(object.Path)
+	_, err = engine.Preview(bucket.Engine, bucket.Address, bucket.Url, bucket.Scope, uname, filename, 60, bucket.AccessKey, bucket.AccessSecret)
 	if nil != err {
 		return err
 	}
@@ -525,35 +576,34 @@ func (this *Object) ConvertFromBase64(_ctx context.Context, _req *proto.ObjectCo
 	for _, e := range _req.Source {
 		data, err := model.FromBase64(e.Content)
 		if nil != err {
-			failure = append(failure, e.Filepath)
+			failure = append(failure, e.Path)
 			continue
 		}
 
 		size := int64(len(data))
 		//保存进存储引擎
 		reader := bytes.NewReader(data)
-		err = engine.Save(bucket.Engine, bucket.Address, bucket.Scope, e.Uname, reader, size, bucket.AccessKey, bucket.AccessSecret)
+		err = engine.Save(bucket.Engine, bucket.Address, bucket.Scope, e.Path, reader, size, bucket.AccessKey, bucket.AccessSecret)
 		if nil != err {
 			_rsp.Status.Code = 9
 			_rsp.Status.Message = err.Error()
-			failure = append(failure, e.Filepath)
+			failure = append(failure, e.Path)
 			continue
 		}
 
 		// 写入数据库
 		object := &model.Object{
-			UUID:     model.ToUUID(_req.Bucket + e.Filepath),
-			Filepath: e.Filepath,
-			Bucket:   _req.Bucket,
-			MD5:      model.Md5FromBytes(data),
-			UName:    e.Uname,
-			Size:     uint64(size),
+			UUID:   model.ToUUID(_req.Bucket + e.Path),
+			Path:   e.Path,
+			Bucket: _req.Bucket,
+			Hash:   model.Md5FromBytes(data),
+			Size:   uint64(size),
 		}
 		err = dao.Upsert(object)
 		if nil != err {
 			_rsp.Status.Code = 9
 			_rsp.Status.Message = err.Error()
-			failure = append(failure, e.Filepath)
+			failure = append(failure, e.Path)
 			continue
 		}
 	}
@@ -579,19 +629,18 @@ func (this *Object) ConvertFromUrl(_ctx context.Context, _req *proto.ObjectConve
 	for _, e := range _req.Source {
 		// 写入数据库
 		object := &model.Object{
-			UUID:     model.ToUUID(bucket.UUID + e.Filepath),
-			Filepath: e.Filepath,
-			Bucket:   _req.Bucket,
-			MD5:      e.Md5,
-			UName:    e.Uname,
-			URL:      e.Content,
-			Size:     uint64(e.Size),
+			UUID:   model.ToUUID(bucket.UUID + e.Path),
+			Path:   e.Path,
+			Bucket: _req.Bucket,
+			Hash:   e.Hash,
+			URL:    e.Content,
+			Size:   uint64(e.Size),
 		}
 		err = dao.Upsert(object)
 		if nil != err {
 			_rsp.Status.Code = 9
 			_rsp.Status.Message = err.Error()
-			failure = append(failure, e.Filepath)
+			failure = append(failure, e.Path)
 			continue
 		}
 	}

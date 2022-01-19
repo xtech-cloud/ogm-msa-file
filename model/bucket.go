@@ -19,6 +19,7 @@ type Bucket struct {
 	AccessKey    string `gorm:"column:access_key;type:varchar(1024)"`
 	AccessSecret string `gorm:"column:access_secret;type:varchar(1024)"`
 	Url          string `gorm:"column:url;type:varchar(1024)"`
+    Mode         string `gorm:"column:mode;type:varchar(32)";default:'hash'`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

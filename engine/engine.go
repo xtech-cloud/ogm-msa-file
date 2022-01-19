@@ -6,12 +6,12 @@ import (
 	proto "github.com/xtech-cloud/ogm-msp-file/proto/file"
 )
 
-func Prepare(_engine int, _address string, _url string, _scope string, _uname string, _accessKey string, _accessSecret string, _expiry int64) (string, error) {
+func Prepare(_engine int, _address string, _url string, _scope string, _uname string, _accessKey string, _accessSecret string, _expiry int64, _override bool) (string, error) {
 	switch proto.Engine(_engine) {
 	case proto.Engine_ENGINE_QINIU:
 		return prepareQiniu(_address, _scope, _uname, _accessKey, _accessSecret)
 	case proto.Engine_ENGINE_MINIO:
-		return prepareMinio(_address, _url, _scope, _uname, _accessKey, _accessSecret, _expiry)
+		return prepareMinio(_address, _url, _scope, _uname, _accessKey, _accessSecret, _expiry, _override)
 	}
 	return "", errors.New("unsupported engine")
 }

@@ -1,10 +1,10 @@
 package engine
 
 import (
-    "io"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -14,7 +14,7 @@ import (
 	"github.com/minio/minio-go/v7/pkg/signer"
 )
 
-func prepareMinio(_address string, _url string, _scope string, _uname string, _accessKey string, _accessSecret string, _expiry int64) (string, error) {
+func prepareMinio(_address string, _url string, _scope string, _uname string, _accessKey string, _accessSecret string, _expiry int64, _override bool) (string, error) {
 	useSSL := false
 	minioClient, err := minio.New(_address, &minio.Options{
 		Creds:  credentials.NewStaticV4(_accessKey, _accessSecret, ""),
@@ -35,12 +35,15 @@ func prepareMinio(_address string, _url string, _scope string, _uname string, _a
 	}
 
 	_, err = minioClient.StatObject(context.Background(), _scope, _uname, minio.StatObjectOptions{})
-	// 文件存在
-	if err == nil {
-		return "", nil
-	}
-	if err.Error() != "The specified key does not exist." {
-		return "", err
+	if nil != err {
+		if err.Error() != "The specified key does not exist." {
+			return "", err
+		}
+	} else {
+		if !_override {
+			// 文件存在
+			return "", nil
+		}
 	}
 
 	// 方式一：使MINIO SDK
@@ -162,9 +165,9 @@ func saveMinio(_address string, _scope string, _uname string, _reader io.Reader,
 	}
 
 	ctx := context.TODO()
-    _, err = minioClient.PutObject(ctx, _scope, _uname, _reader, _size, minio.PutObjectOptions{ContentType:"application/octet-stream"})
+	_, err = minioClient.PutObject(ctx, _scope, _uname, _reader, _size, minio.PutObjectOptions{ContentType: "application/octet-stream"})
 	if err != nil {
 		return err
 	}
-    return nil
+	return nil
 }
