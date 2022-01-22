@@ -10,6 +10,7 @@ import (
 type Bucket struct {
 	UUID         string `gorm:"column:uuid;type:char(32);not null;unique;primaryKey"`
 	Name         string `gorm:"column:name;type:varchar(256);not null;unique"`
+	Alias        string `gorm:"column:alias;type:varchar(256);not null;default:''"`
 	Token        string `gorm:"column:token;type:char(32)"`
 	TotalSize    uint64 `gorm:"column:size_total;not null;default:0"`
 	UsedSize     uint64 `gorm:"column:size_used;not null;default:0"`
@@ -19,7 +20,7 @@ type Bucket struct {
 	AccessKey    string `gorm:"column:access_key;type:varchar(1024)"`
 	AccessSecret string `gorm:"column:access_secret;type:varchar(1024)"`
 	Url          string `gorm:"column:url;type:varchar(1024)"`
-    Mode         string `gorm:"column:mode;type:varchar(32)";default:'hash'`
+	Mode         string `gorm:"column:mode;type:varchar(32)";default:'hash'`
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -100,9 +101,16 @@ func (this *BucketDAO) List(_offset int64, _count int64) ([]*Bucket, error) {
 	return buckets, res.Error
 }
 
-func (this *BucketDAO) Search(_offset int64, _count int64, _name string) ([]*Bucket, error) {
+func (this *BucketDAO) Search(_offset int64, _count int64, _name string, _alias string) ([]*Bucket, error) {
 	var buckets []*Bucket
-	res := this.conn.DB.Where("name LIKE ?", "%"+_name+"%").Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&buckets)
+	db := this.conn.DB
+	if _name != "" {
+		db = db.Where("name LIKE ?", "%"+_name+"%")
+	}
+	if _alias != "" {
+		db = db.Where("alias LIKE ?", "%"+_alias+"%")
+	}
+	res := db.Offset(int(_offset)).Limit(int(_count)).Order("created_at desc").Find(&buckets)
 	return buckets, res.Error
 }
 

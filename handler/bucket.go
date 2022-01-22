@@ -53,6 +53,7 @@ func (this *Bucket) Make(_ctx context.Context, _req *proto.BucketMakeRequest, _r
 	bucket := &model.Bucket{
 		UUID:         uuid,
 		Name:         _req.Name,
+		Alias:        _req.Alias,
 		Engine:       engine,
 		Token:        model.NewUUID(),
 		TotalSize:    _req.Capacity,
@@ -108,6 +109,7 @@ func (this *Bucket) List(_ctx context.Context, _req *proto.BucketListRequest, _r
 		_rsp.Entity[i] = &proto.BucketEntity{
 			Uuid:         bucket.UUID,
 			Name:         bucket.Name,
+			Alias:        bucket.Alias,
 			Engine:       proto.Engine(bucket.Engine),
 			TotalSize:    bucket.TotalSize,
 			UsedSize:     bucket.UsedSize,
@@ -144,7 +146,8 @@ func (this *Bucket) Search(_ctx context.Context, _req *proto.BucketSearchRequest
 	if nil != err {
 		return nil
 	}
-	buckets, err := dao.Search(offset, count, _req.Name)
+
+	buckets, err := dao.Search(offset, count, _req.Name, _req.Alias)
 	if nil != err {
 		return nil
 	}
@@ -155,6 +158,7 @@ func (this *Bucket) Search(_ctx context.Context, _req *proto.BucketSearchRequest
 		_rsp.Entity[i] = &proto.BucketEntity{
 			Uuid:         bucket.UUID,
 			Name:         bucket.Name,
+			Alias:        bucket.Alias,
 			Engine:       proto.Engine(bucket.Engine),
 			TotalSize:    bucket.TotalSize,
 			UsedSize:     bucket.UsedSize,
@@ -183,6 +187,7 @@ func (this *Bucket) Update(_ctx context.Context, _req *proto.BucketUpdateRequest
 	bucket := &model.Bucket{
 		UUID:         _req.Uuid,
 		Name:         _req.Name,
+		Alias:        _req.Alias,
 		TotalSize:    _req.Capacity,
 		Engine:       int(_req.Engine),
 		Address:      _req.Address,
@@ -271,6 +276,7 @@ func (this *Bucket) Get(_ctx context.Context, _req *proto.BucketGetRequest, _rsp
 	_rsp.Entity = &proto.BucketEntity{
 		Uuid:         bucket.UUID,
 		Name:         bucket.Name,
+		Alias:        bucket.Alias,
 		Engine:       proto.Engine(bucket.Engine),
 		TotalSize:    bucket.TotalSize,
 		UsedSize:     bucket.UsedSize,
@@ -308,6 +314,7 @@ func (this *Bucket) Find(_ctx context.Context, _req *proto.BucketFindRequest, _r
 	_rsp.Entity = &proto.BucketEntity{
 		Uuid:         bucket.UUID,
 		Name:         bucket.Name,
+		Alias:        bucket.Alias,
 		Engine:       proto.Engine(bucket.Engine),
 		TotalSize:    bucket.TotalSize,
 		UsedSize:     bucket.UsedSize,
