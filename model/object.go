@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -199,8 +200,8 @@ func (this *ObjectDAO) QueryOne(_query *ObjectQuery) (*Object, error) {
 func (this *ObjectDAO) Get(_uuid string) (*Object, error) {
 	var object Object
 	db := this.conn.DB.Model(&Object{}).Where("uuid = ?", _uuid)
-	err := db.Limit(1).Find(&object).Error
-	if "" == object.UUID {
+	err := db.First(&object).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrObjectNotFound
 	}
 	return &object, err

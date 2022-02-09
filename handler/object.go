@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"errors"
 	"ogm-file/engine"
 	"ogm-file/model"
@@ -572,43 +573,41 @@ func (this *Object) ConvertFromBase64(_ctx context.Context, _req *proto.ObjectCo
 	}
 
 	dao := model.NewObjectDAO(nil)
+
 	failure := make([]string, 0)
-	for _, e := range _req.Source {
-		data, err := model.FromBase64(e.Content)
+	for _, source := range _req.Source {
+		data, err := base64.StdEncoding.DecodeString(source.Content)
 		if nil != err {
-			failure = append(failure, e.Path)
+			failure = append(failure, source.Path)
 			continue
 		}
 
 		size := int64(len(data))
 		//保存进存储引擎
 		reader := bytes.NewReader(data)
-		err = engine.Save(bucket.Engine, bucket.Address, bucket.Scope, e.Path, reader, size, bucket.AccessKey, bucket.AccessSecret)
+		err = engine.Save(bucket.Engine, bucket.Address, bucket.Scope, source.Path, reader, size, bucket.AccessKey, bucket.AccessSecret)
 		if nil != err {
-			_rsp.Status.Code = 9
-			_rsp.Status.Message = err.Error()
-			failure = append(failure, e.Path)
+			failure = append(failure, source.Path)
 			continue
 		}
 
 		// 写入数据库
 		object := &model.Object{
-			UUID:   model.ToUUID(_req.Bucket + e.Path),
-			Path:   e.Path,
+			UUID:   model.ToUUID(_req.Bucket + source.Path),
+			Path:   source.Path,
 			Bucket: _req.Bucket,
 			Hash:   model.Md5FromBytes(data),
 			Size:   uint64(size),
 		}
 		err = dao.Upsert(object)
 		if nil != err {
-			_rsp.Status.Code = 9
-			_rsp.Status.Message = err.Error()
-			failure = append(failure, e.Path)
+			failure = append(failure, source.Path)
 			continue
 		}
 	}
 
 	_rsp.Failure = failure
+
 	return nil
 }
 
@@ -625,23 +624,22 @@ func (this *Object) ConvertFromUrl(_ctx context.Context, _req *proto.ObjectConve
 	}
 
 	dao := model.NewObjectDAO(nil)
+
 	failure := make([]string, 0)
-	for _, e := range _req.Source {
+	for _, source := range _req.Source {
 		// 写入数据库
 		object := &model.Object{
-			UUID:   model.ToUUID(bucket.UUID + e.Path),
-			Path:   e.Path,
+			UUID:   model.ToUUID(bucket.UUID + source.Path),
+			Path:   source.Path,
 			Bucket: _req.Bucket,
-			Hash:   e.Hash,
-			URL:    e.Content,
-			Size:   uint64(e.Size),
+			Hash:   source.Hash,
+			URL:    source.Content,
+			Size:   uint64(source.Size),
 		}
 		err = dao.Upsert(object)
 		if nil != err {
-			_rsp.Status.Code = 9
-			_rsp.Status.Message = err.Error()
-			failure = append(failure, e.Path)
-			continue
+			failure = append(failure, source.Path)
+            continue
 		}
 	}
 

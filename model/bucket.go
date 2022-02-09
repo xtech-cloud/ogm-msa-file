@@ -135,7 +135,7 @@ func (this *BucketDAO) QueryOne(_query *BucketQuery) (*Bucket, error) {
 
 func (this *BucketDAO) Get(_uuid string) (*Bucket, error) {
 	var bucket Bucket
-	err := this.conn.DB.Model(&Bucket{}).Where("uuid = ?", _uuid).Find(&bucket).Error
+	err := this.conn.DB.Model(&Bucket{}).Where("uuid = ?", _uuid).First(&bucket).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, ErrBucketNotFound
 	}
