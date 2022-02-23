@@ -576,6 +576,10 @@ func (this *Object) ConvertFromBase64(_ctx context.Context, _req *proto.ObjectCo
 
 	failure := make([]string, 0)
 	for _, source := range _req.Source {
+		if "" == source.Path {
+			failure = append(failure, source.Path)
+			continue
+		}
 		data, err := base64.StdEncoding.DecodeString(source.Content)
 		if nil != err {
 			failure = append(failure, source.Path)
@@ -627,6 +631,10 @@ func (this *Object) ConvertFromUrl(_ctx context.Context, _req *proto.ObjectConve
 
 	failure := make([]string, 0)
 	for _, source := range _req.Source {
+		if "" == source.Path {
+			failure = append(failure, source.Path)
+			continue
+		}
 		// 写入数据库
 		object := &model.Object{
 			UUID:   model.ToUUID(bucket.UUID + source.Path),
@@ -639,7 +647,7 @@ func (this *Object) ConvertFromUrl(_ctx context.Context, _req *proto.ObjectConve
 		err = dao.Upsert(object)
 		if nil != err {
 			failure = append(failure, source.Path)
-            continue
+			continue
 		}
 	}
 
