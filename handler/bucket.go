@@ -363,7 +363,7 @@ func (this *Bucket) GenerateManifest(_ctx context.Context, _req *proto.BucketGen
 
 	dao := model.NewObjectDAO(nil)
 
-	objects, err := dao.WherePath(_req.Uuid, like_sql, notlike_sql)
+	objects, err := dao.WherePath(_req.Uuid, like_sql, notlike_sql, _req.Prefix)
 	if nil != err {
 		_rsp.Status.Code = -1
 		_rsp.Status.Message = err.Error()
@@ -475,7 +475,7 @@ func (this *Bucket) Clean(_ctx context.Context, _req *proto.BucketCleanRequest, 
 	}
 
 	dao := model.NewObjectDAO(nil)
-	err := dao.Clean(_req.Uuid)
+	err := dao.Clean(_req.Uuid, _req.Prefix)
 	if nil != err {
 		_rsp.Status.Code = -1
 		_rsp.Status.Message = err.Error()

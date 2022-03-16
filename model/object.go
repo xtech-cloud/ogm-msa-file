@@ -150,7 +150,7 @@ func (this *ObjectDAO) Search(_offset int64, _count int64, _bucket string, _pref
 	return
 }
 
-func (this *ObjectDAO) WherePath(_bucket string, _like []string, _notlike []string) (_object []Object, _err error) {
+func (this *ObjectDAO) WherePath(_bucket string, _like []string, _notlike []string, _prefix string) (_object []Object, _err error) {
 	db_like := this.conn.DB.Model(&Object{})
 	if nil != _like {
 		for _, like := range _like {
@@ -165,7 +165,11 @@ func (this *ObjectDAO) WherePath(_bucket string, _like []string, _notlike []stri
 	}
 	db := this.conn.DB.Model(&Object{})
 	var object []Object
-	db = db.Where("bucket = ?", _bucket).Where(db_like).Where(db_notlike).Order("created_at desc").Find(&object)
+	db = db.Where("bucket = ?", _bucket)
+	if "" != _prefix {
+		db = db.Where("path LIKE ?", _prefix+"%")
+	}
+	db = db.Where(db_like).Where(db_notlike).Order("created_at desc").Find(&object)
 	err := db.Statement.Error
 	return object, err
 }
@@ -207,6 +211,10 @@ func (this *ObjectDAO) Get(_uuid string) (*Object, error) {
 	return &object, err
 }
 
-func (this *ObjectDAO) Clean(_bucket string) error {
-	return this.conn.DB.Where("bucket = ?", _bucket).Delete(&Object{}).Error
+func (this *ObjectDAO) Clean(_bucket string, _prefix string) error {
+	db := this.conn.DB.Where("bucket = ?", _bucket)
+	if "" != _prefix {
+		db = db.Where("path LIKE ?", _prefix+"%")
+	}
+	return db.Delete(&Object{}).Error
 }
